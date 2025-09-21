@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "base"
+require_relative 'base'
 
 module PaystackSdk
   module Resources
@@ -45,14 +45,14 @@ module PaystackSdk
         validate_fields!(
           payload: payload,
           validations: {
-            email: {type: :email, required: true},
-            first_name: {type: :string, required: false},
-            last_name: {type: :string, required: false},
-            phone: {type: :string, required: false}
+            email: { type: :email, required: true },
+            first_name: { type: :string, required: false },
+            last_name: { type: :string, required: false },
+            phone: { type: :string, required: false }
           }
         )
 
-        response = @connection.post("customer", payload)
+        response = @connection.post('customer', payload)
         handle_response(response)
       end
 
@@ -65,19 +65,15 @@ module PaystackSdk
       # @return [PaystackSdk::Response] The response from the Paystack API.
       # @raise [PaystackSdk::Error] If the API request fails.
       def list(per_page: 50, page: 1, **params)
-        validate_positive_integer!(value: per_page, name: "per_page", allow_nil: true)
-        validate_positive_integer!(value: page, name: "page", allow_nil: true)
+        validate_positive_integer!(value: per_page, name: 'per_page', allow_nil: true)
+        validate_positive_integer!(value: page, name: 'page', allow_nil: true)
 
-        if params[:from]
-          validate_date_format!(date_str: params[:from], name: "from")
-        end
+        validate_date_format!(date_str: params[:from], name: 'from') if params[:from]
 
-        if params[:to]
-          validate_date_format!(date_str: params[:to], name: "to")
-        end
+        validate_date_format!(date_str: params[:to], name: 'to') if params[:to]
 
-        query_params = {perPage: per_page, page: page}.merge(params)
-        response = @connection.get("customer", query_params)
+        query_params = { perPage: per_page, page: page }.merge(params)
+        response = @connection.get('customer', query_params)
         handle_response(response)
       end
 
@@ -87,7 +83,7 @@ module PaystackSdk
       # @return [PaystackSdk::Response] The response from the Paystack API.
       # @raise [PaystackSdk::Error] If the parameter is invalid or the API request fails.
       def fetch(email_or_code)
-        validate_presence!(value: email_or_code, name: "email_or_code")
+        validate_presence!(value: email_or_code, name: 'email_or_code')
         response = @connection.get("customer/#{email_or_code}")
         handle_response(response)
       end
@@ -103,8 +99,8 @@ module PaystackSdk
       # @return [PaystackSdk::Response] The response from the Paystack API.
       # @raise [PaystackSdk::Error] If the parameters are invalid or the API request fails.
       def update(code, payload)
-        validate_presence!(value: code, name: "code")
-        validate_hash!(input: payload, name: "payload")
+        validate_presence!(value: code, name: 'code')
+        validate_hash!(input: payload, name: 'payload')
 
         response = @connection.put("customer/#{code}", payload)
         handle_response(response)
@@ -124,14 +120,14 @@ module PaystackSdk
       # @return [PaystackSdk::Response] The response from the Paystack API.
       # @raise [PaystackSdk::Error] If the parameters are invalid or the API request fails.
       def validate(code, payload)
-        validate_presence!(value: code, name: "code")
+        validate_presence!(value: code, name: 'code')
         validate_fields!(
           payload: payload,
           validations: {
-            country: {type: :string, required: true},
-            type: {type: :string, required: true},
-            account_number: {type: :string, required: true},
-            bank_code: {type: :string, required: true}
+            country: { type: :string, required: true },
+            type: { type: :string, required: true },
+            account_number: { type: :string, required: true },
+            bank_code: { type: :string, required: true }
           }
         )
 
@@ -161,12 +157,12 @@ module PaystackSdk
         validate_fields!(
           payload: payload,
           validations: {
-            customer: {type: :string, required: true},
-            risk_action: {type: :inclusion, required: true, allowed_values: %w[default allow deny]}
+            customer: { type: :string, required: true },
+            risk_action: { type: :inclusion, required: true, allowed_values: %w[default allow deny] }
           }
         )
 
-        response = @connection.post("customer/set_risk_action", payload)
+        response = @connection.post('customer/set_risk_action', payload)
         handle_response(response)
       end
 
@@ -180,11 +176,11 @@ module PaystackSdk
         validate_fields!(
           payload: payload,
           validations: {
-            authorization_code: {type: :string, required: true}
+            authorization_code: { type: :string, required: true }
           }
         )
 
-        response = @connection.post("customer/deactivate_authorization", payload)
+        response = @connection.post('customer/deactivate_authorization', payload)
         handle_response(response)
       end
     end

@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
-require_relative "resources/transactions"
-require_relative "resources/customers"
-require_relative "resources/transfer_recipients"
-require_relative "resources/transfers"
-require_relative "resources/banks"
-require_relative "resources/verification"
-require_relative "utils/connection_utils"
+require_relative 'resources/transactions'
+require_relative 'resources/customers'
+require_relative 'resources/transfer_recipients'
+require_relative 'resources/transfers'
+require_relative 'resources/banks'
+require_relative 'resources/verification'
+require_relative 'resources/charges'
+require_relative 'utils/connection_utils'
 
 module PaystackSdk
   # The `Client` class serves as the main entry point for interacting with the Paystack API.
@@ -120,6 +121,20 @@ module PaystackSdk
     # ```
     def verification
       @verification ||= Resources::Verification.new(@connection)
+    end
+
+    # Provides access to the `Charges` resource.
+    #
+    # @return [PaystackSdk::Resources::Charges] An instance of the
+    #  `Charges` resource.
+    #
+    # @example
+    # ```ruby
+    #   charges = client.charges
+    #   response = charges.mobile_money(payload)
+    # ```
+    def charges
+      @charges ||= Resources::Charges.new(@connection)
     end
   end
 end

@@ -36,10 +36,10 @@ module PaystackSdk
     # @param input [Object] The input to validate
     # @param name [String] Name of the parameter for error messages
     # @raise [PaystackSdk::InvalidFormatError] If input is not a hash
-    def validate_hash!(input:, name: "Payload")
-      unless input.is_a?(Hash)
-        raise PaystackSdk::InvalidFormatError.new(name, "Hash")
-      end
+    def validate_hash!(input:, name: 'Payload')
+      return if input.is_a?(Hash)
+
+      raise PaystackSdk::InvalidFormatError.new(name, 'Hash')
     end
 
     # Validates that required parameters are present in a payload.
@@ -48,15 +48,15 @@ module PaystackSdk
     # @param required_params [Array<Symbol>] List of required parameter keys
     # @param operation_name [String] Name of the operation for error messages
     # @raise [PaystackSdk::MissingParamError] If any required parameters are missing
-    def validate_required_params!(payload:, required_params:, operation_name: "Operation")
+    def validate_required_params!(payload:, required_params:, operation_name: 'Operation')
       missing_params = required_params.select do |param|
         !payload.key?(param) && !payload.key?(param.to_s)
       end
 
-      unless missing_params.empty?
-        param = missing_params.first
-        raise PaystackSdk::MissingParamError.new(param)
-      end
+      return if missing_params.empty?
+
+      param = missing_params.first
+      raise PaystackSdk::MissingParamError.new(param)
     end
 
     # Validates that a value is present (not nil or empty).
@@ -64,10 +64,10 @@ module PaystackSdk
     # @param value [Object] The value to validate
     # @param name [String] Name of the parameter for error messages
     # @raise [PaystackSdk::MissingParamError] If value is nil or empty
-    def validate_presence!(value:, name: "Parameter")
-      if value.nil? || (value.respond_to?(:empty?) && value.empty?)
-        raise PaystackSdk::MissingParamError.new(name)
-      end
+    def validate_presence!(value:, name: 'Parameter')
+      return unless value.nil? || (value.respond_to?(:empty?) && value.empty?)
+
+      raise PaystackSdk::MissingParamError.new(name)
     end
 
     # Validates that a number is a positive integer.
@@ -77,11 +77,11 @@ module PaystackSdk
     # @param allow_nil [Boolean] Whether nil values are allowed
     # @raise [PaystackSdk::InvalidValueError] If value is not a positive integer
     # @raise [PaystackSdk::MissingParamError] If value is nil and not allowed
-    def validate_positive_integer!(value:, name: "Parameter", allow_nil: true)
+    def validate_positive_integer!(value:, name: 'Parameter', allow_nil: true)
       if value.nil?
         raise PaystackSdk::MissingParamError.new(name) unless allow_nil
       elsif !value.is_a?(Integer) || value < 1
-        raise PaystackSdk::InvalidValueError.new(name, "must be a positive integer")
+        raise PaystackSdk::InvalidValueError.new(name, 'must be a positive integer')
       end
     end
 
@@ -90,10 +90,10 @@ module PaystackSdk
     # @param reference [String] The reference to validate
     # @param name [String] Name of the parameter for error messages
     # @raise [PaystackSdk::InvalidFormatError] If reference format is invalid
-    def validate_reference_format!(reference:, name: "Reference")
-      unless reference.to_s.match?(/^[a-zA-Z0-9._=-]+$/)
-        raise PaystackSdk::InvalidFormatError.new(name, "alphanumeric characters and the following: -, ., =")
-      end
+    def validate_reference_format!(reference:, name: 'Reference')
+      return if reference.to_s.match?(/^[a-zA-Z0-9._=-]+$/)
+
+      raise PaystackSdk::InvalidFormatError.new(name, 'alphanumeric characters and the following: -, ., =')
     end
 
     # Validates a date string format.
@@ -103,16 +103,17 @@ module PaystackSdk
     # @param allow_nil [Boolean] Whether nil values are allowed
     # @raise [PaystackSdk::InvalidFormatError] If date format is invalid
     # @raise [PaystackSdk::MissingParamError] If date is nil and not allowed
-    def validate_date_format!(date_str:, name: "Date", allow_nil: true)
+    def validate_date_format!(date_str:, name: 'Date', allow_nil: true)
       if date_str.nil?
         raise PaystackSdk::MissingParamError.new(name) unless allow_nil
+
         return
       end
 
       begin
         Date.parse(date_str.to_s)
       rescue Date::Error
-        raise PaystackSdk::InvalidFormatError.new(name, "YYYY-MM-DD or ISO8601")
+        raise PaystackSdk::InvalidFormatError.new(name, 'YYYY-MM-DD or ISO8601')
       end
     end
 
@@ -133,16 +134,17 @@ module PaystackSdk
     #     name: "risk_action"
     #   )
     # ```
-    def validate_allowed_values!(value:, allowed_values:, name: "Parameter", allow_nil: true)
+    def validate_allowed_values!(value:, allowed_values:, name: 'Parameter', allow_nil: true)
       if value.nil?
         raise PaystackSdk::MissingParamError.new(name) unless allow_nil
+
         return
       end
 
-      unless allowed_values.include?(value)
-        allowed_list = allowed_values.join(", ")
-        raise PaystackSdk::InvalidValueError.new(name, "must be one of: #{allowed_list}")
-      end
+      return if allowed_values.include?(value)
+
+      allowed_list = allowed_values.join(', ')
+      raise PaystackSdk::InvalidValueError.new(name, "must be one of: #{allowed_list}")
     end
 
     # Validates an email format.
@@ -151,15 +153,16 @@ module PaystackSdk
     # @param name [String] Name of the parameter for error messages
     # @param allow_nil [Boolean] Whether nil values are allowed
     # @raise [PaystackSdk::Error] If email format is invalid
-    def validate_email!(email:, name: "Email", allow_nil: false)
+    def validate_email!(email:, name: 'Email', allow_nil: false)
       if email.nil?
         raise PaystackSdk::MissingParamError.new(name) unless allow_nil
+
         return
       end
 
-      unless email.to_s.match?(/\A[^@\s]+@[^@\s]+\.[^@\s]+\z/)
-        raise PaystackSdk::InvalidFormatError.new(name, "valid email address")
-      end
+      return if email.to_s.match?(/\A[^@\s]+@[^@\s]+\.[^@\s]+\z/)
+
+      raise PaystackSdk::InvalidFormatError.new(name, 'valid email address')
     end
 
     # Validates a currency code format.
@@ -168,15 +171,16 @@ module PaystackSdk
     # @param name [String] Name of the parameter for error messages
     # @param allow_nil [Boolean] Whether nil values are allowed
     # @raise [PaystackSdk::Error] If currency format is invalid
-    def validate_currency!(currency:, name: "Currency", allow_nil: true)
+    def validate_currency!(currency:, name: 'Currency', allow_nil: true)
       if currency.nil?
         raise PaystackSdk::MissingParamError.new(name) unless allow_nil
+
         return
       end
 
-      unless currency.to_s.match?(/\A[A-Z]{3}\z/)
-        raise PaystackSdk::InvalidFormatError.new(name, "3-letter ISO code (e.g., NGN, USD, GHS)")
-      end
+      return if currency.to_s.match?(/\A[A-Z]{3}\z/)
+
+      raise PaystackSdk::InvalidFormatError.new(name, '3-letter ISO code (e.g., NGN, USD, GHS)')
     end
 
     # Validates multiple fields at once.
@@ -198,7 +202,7 @@ module PaystackSdk
     #   )
     # ```
     def validate_fields!(payload:, validations:)
-      validate_hash!(input: payload, name: "Payload")
+      validate_hash!(input: payload, name: 'Payload')
 
       # First check required fields
       required_fields = validations.select { |_, opts| opts[:required] }.keys

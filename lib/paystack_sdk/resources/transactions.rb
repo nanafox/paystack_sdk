@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "base"
+require_relative 'base'
 
 module PaystackSdk
   module Resources
@@ -57,15 +57,15 @@ module PaystackSdk
         validate_fields!(
           payload: payload,
           validations: {
-            email: {type: :email, required: true},
-            amount: {type: :positive_integer, required: true},
-            currency: {type: :currency, required: false},
-            reference: {type: :reference, required: false},
-            callback_url: {required: false}
+            email: { type: :email, required: true },
+            amount: { type: :positive_integer, required: true },
+            currency: { type: :currency, required: false },
+            reference: { type: :reference, required: false },
+            callback_url: { required: false }
           }
         )
 
-        response = @connection.post("/transaction/initialize", payload)
+        response = @connection.post('/transaction/initialize', payload)
         handle_response(response)
       end
 
@@ -78,7 +78,7 @@ module PaystackSdk
       # @example
       #   response = transactions.verify(reference: "transaction_reference")
       def verify(reference:)
-        validate_presence!(value: reference, name: "Reference")
+        validate_presence!(value: reference, name: 'Reference')
 
         response = @connection.get("/transaction/verify/#{reference}")
         handle_response(response)
@@ -104,26 +104,26 @@ module PaystackSdk
       #   response = transactions.list(per_page: 10, from: "2023-01-01", to: "2023-12-31", status: "success")
       def list(per_page: 50, page: 1, **params)
         # Create a combined parameter hash for validation
-        all_params = {per_page: per_page, page: page}.merge(params)
+        all_params = { per_page: per_page, page: page }.merge(params)
 
         # Validate parameters
         validate_fields!(
           payload: all_params,
           validations: {
-            per_page: {type: :positive_integer, required: false},
-            page: {type: :positive_integer, required: false},
-            from: {type: :date, required: false},
-            to: {type: :date, required: false},
-            status: {type: :inclusion, allowed_values: %w[failed success abandoned], required: false},
-            customer: {type: :positive_integer, required: false},
-            amount: {type: :positive_integer, required: false},
-            currency: {type: :currency, required: false}
+            per_page: { type: :positive_integer, required: false },
+            page: { type: :positive_integer, required: false },
+            from: { type: :date, required: false },
+            to: { type: :date, required: false },
+            status: { type: :inclusion, allowed_values: %w[failed success abandoned], required: false },
+            customer: { type: :positive_integer, required: false },
+            amount: { type: :positive_integer, required: false },
+            currency: { type: :currency, required: false }
           }
         )
 
         # Prepare request parameters
-        request_params = {perPage: per_page, page: page}.merge(params)
-        response = @connection.get("/transaction", request_params)
+        request_params = { perPage: per_page, page: page }.merge(params)
+        response = @connection.get('/transaction', request_params)
         handle_response(response)
       end
 
@@ -136,7 +136,7 @@ module PaystackSdk
       # @example
       #   response = transactions.fetch("12345")
       def fetch(transaction_id)
-        validate_presence!(value: transaction_id, name: "Transaction ID")
+        validate_presence!(value: transaction_id, name: 'Transaction ID')
 
         response = @connection.get("/transaction/#{transaction_id}")
         handle_response(response)
@@ -157,12 +157,12 @@ module PaystackSdk
         validate_fields!(
           payload: params,
           validations: {
-            from: {type: :date, required: false},
-            to: {type: :date, required: false}
+            from: { type: :date, required: false },
+            to: { type: :date, required: false }
           }
         )
 
-        response = @connection.get("/transaction/totals", params)
+        response = @connection.get('/transaction/totals', params)
         handle_response(response)
       end
 
@@ -188,18 +188,18 @@ module PaystackSdk
         validate_fields!(
           payload: params,
           validations: {
-            from: {type: :date, required: false},
-            to: {type: :date, required: false},
-            status: {type: :inclusion, allowed_values: %w[failed success abandoned], required: false},
-            currency: {type: :currency, required: false},
-            amount: {type: :positive_integer, required: false},
-            payment_page: {type: :positive_integer, required: false},
-            customer: {type: :positive_integer, required: false},
-            settlement: {type: :positive_integer, required: false}
+            from: { type: :date, required: false },
+            to: { type: :date, required: false },
+            status: { type: :inclusion, allowed_values: %w[failed success abandoned], required: false },
+            currency: { type: :currency, required: false },
+            amount: { type: :positive_integer, required: false },
+            payment_page: { type: :positive_integer, required: false },
+            customer: { type: :positive_integer, required: false },
+            settlement: { type: :positive_integer, required: false }
           }
         )
 
-        response = @connection.get("/transaction/export", params)
+        response = @connection.get('/transaction/export', params)
         handle_response(response)
       end
 
@@ -227,15 +227,15 @@ module PaystackSdk
         validate_fields!(
           payload: payload,
           validations: {
-            authorization_code: {required: true},
-            email: {type: :email, required: true},
-            amount: {type: :positive_integer, required: true},
-            reference: {type: :reference, required: false},
-            currency: {type: :currency, required: false}
+            authorization_code: { required: true },
+            email: { type: :email, required: true },
+            amount: { type: :positive_integer, required: true },
+            reference: { type: :reference, required: false },
+            currency: { type: :currency, required: false }
           }
         )
 
-        response = @connection.post("/transaction/charge_authorization", payload)
+        response = @connection.post('/transaction/charge_authorization', payload)
         handle_response(response)
       end
 
@@ -264,15 +264,15 @@ module PaystackSdk
         validate_fields!(
           payload: payload,
           validations: {
-            authorization_code: {required: true},
-            currency: {type: :currency, required: true},
-            amount: {type: :positive_integer, required: true},
-            email: {type: :email, required: true},
-            reference: {type: :reference, required: false}
+            authorization_code: { required: true },
+            currency: { type: :currency, required: true },
+            amount: { type: :positive_integer, required: true },
+            email: { type: :email, required: true },
+            reference: { type: :reference, required: false }
           }
         )
 
-        response = @connection.post("/transaction/partial_debit", payload)
+        response = @connection.post('/transaction/partial_debit', payload)
         handle_response(response)
       end
 
@@ -287,7 +287,7 @@ module PaystackSdk
       #   # OR
       #   response = transactions.timeline("ref_123456789")
       def timeline(id_or_reference)
-        validate_presence!(value: id_or_reference, name: "Transaction ID or Reference")
+        validate_presence!(value: id_or_reference, name: 'Transaction ID or Reference')
 
         response = @connection.get("/transaction/timeline/#{id_or_reference}")
         handle_response(response)

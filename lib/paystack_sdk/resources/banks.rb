@@ -1,4 +1,4 @@
-require_relative "../validations"
+require_relative '../validations'
 
 module PaystackSdk
   module Resources
@@ -9,12 +9,12 @@ module PaystackSdk
         if query.key?(:currency)
           validate_allowed_values!(
             value: query[:currency],
-            name: "currency",
+            name: 'currency',
             allowed_values: %w[NGN GHS ZAR KES USD]
           )
         end
 
-        handle_response(@connection.get("/bank", query))
+        handle_response(@connection.get('/bank', query))
       end
     end
   end

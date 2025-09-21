@@ -82,22 +82,20 @@ module PaystackSdk
         when 400..499
           # Client errors - return unsuccessful response for user to handle
           @success = false
-          @error_message = @api_message || "Client error"
+          @error_message = @api_message || 'Client error'
 
           # Still raise for authentication issues as these are usually config problems
-          if @status_code == 401
-            raise AuthenticationError.new(@api_message || "Authentication failed")
-          end
+          raise AuthenticationError.new(@api_message || 'Authentication failed') if @status_code == 401
         when 429
           # Rate limiting - raise as users need to implement retry logic
-          retry_after = response.headers["Retry-After"]
+          retry_after = response.headers['Retry-After']
           raise RateLimitError.new(retry_after || 30)
         when 500..599
           # Server errors - raise as these indicate Paystack infrastructure issues
           raise ServerError.new(@status_code, @api_message)
         else
           @success = false
-          @error_message = @api_message || "Unknown error"
+          @error_message = @api_message || 'Unknown error'
         end
       elsif response.is_a?(Response)
         @success = response.success?
@@ -211,7 +209,7 @@ module PaystackSdk
     # @yield [key, value] For hashes, passes each key-value pair
     # @yield [value] For arrays, passes each item
     # @return [Response, Enumerator] Self for chaining or Enumerator if no block given
-    def each(&block)
+    def each
       return enum_for(:each) unless block_given?
 
       if @raw_data.is_a?(Hash)
@@ -231,7 +229,7 @@ module PaystackSdk
     #   @return [Integer] The number of items
     # @!method empty?
     #   @return [Boolean] Whether the collection is empty
-    [:size, :length, :count, :empty?].each do |method_name|
+    %i[size length count empty?].each do |method_name|
       define_method(method_name) do
         @raw_data.send(method_name) if @raw_data.respond_to?(method_name)
       end
@@ -242,9 +240,10 @@ module PaystackSdk
     #   @return [Object, Response] The first item, wrapped if necessary
     # @!method last
     #   @return [Object, Response] The last item, wrapped if necessary
-    [:first, :last].each do |method_name|
+    %i[first last].each do |method_name|
       define_method(method_name) do
         return nil unless @raw_data.is_a?(Array)
+
         wrap_value(@raw_data.send(method_name))
       end
     end
@@ -257,21 +256,19 @@ module PaystackSdk
     # @param body [Hash] The response body
     # @return [String] The extracted identifier or "unknown"
     def extract_identifier(body)
-      return "unknown" unless body.is_a?(Hash)
+      return 'unknown' unless body.is_a?(Hash)
 
       # First try to get identifier from the message
-      message = body["message"].to_s.downcase
-      if message =~ /with (id|code|reference|email): ([^\s]+)/i
-        return $2
-      end
+      message = body['message'].to_s.downcase
+      return ::Regexp.last_match(2) if message =~ /with (id|code|reference|email): ([^\s]+)/i
 
       # If not found in message, try to extract from error code
-      if body["code"]&.match?(/^(transaction|customer)_/)
-        parts = body["code"].to_s.split("_")
-        return parts.last if parts.last != "not_found"
+      if body['code']&.match?(/^(transaction|customer)_/)
+        parts = body['code'].to_s.split('_')
+        return parts.last if parts.last != 'not_found'
       end
 
-      "unknown"
+      'unknown'
     end
 
     # Extract the API message from the response body
@@ -279,7 +276,7 @@ module PaystackSdk
     # @param body [Hash, nil] The response body
     # @return [String, nil] The API message if present
     def extract_api_message(body)
-      body["message"] if body.is_a?(Hash) && body["message"]
+      body['message'] if body.is_a?(Hash) && body['message']
     end
 
     # Extract the data from the response body
@@ -288,7 +285,8 @@ module PaystackSdk
     # @return [Hash, Array, nil] The data from the response
     def extract_data_from_body(body)
       return body unless body.is_a?(Hash)
-      body["data"] || body
+
+      body['data'] || body
     end
 
     # Wrap value in Response if needed
@@ -310,14 +308,14 @@ module PaystackSdk
     end
 
     def determine_resource_type
-      return "Unknown" unless @body.is_a?(Hash) && @body["code"]
+      return 'Unknown' unless @body.is_a?(Hash) && @body['code']
 
-      if @body["code"].include?("_")
-        parts = @body["code"].to_s.split("_")
-        return parts.last if parts.last != "not_found"
+      if @body['code'].include?('_')
+        parts = @body['code'].to_s.split('_')
+        return parts.last if parts.last != 'not_found'
       end
 
-      "unknown"
+      'unknown'
     end
   end
 end

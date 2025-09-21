@@ -7,7 +7,7 @@ module PaystackSdk
     # and resource classes.
     module ConnectionUtils
       # The base URL for the Paystack API.
-      BASE_URL = "https://api.paystack.co"
+      BASE_URL = 'https://api.paystack.co'
 
       # Initializes a connection based on the provided parameters.
       #
@@ -22,8 +22,8 @@ module PaystackSdk
           create_connection(secret_key:)
         else
           # Try to get API key from environment variable
-          env_secret_key = ENV["PAYSTACK_SECRET_KEY"]
-          raise AuthenticationError, "No connection or API key provided" unless env_secret_key
+          env_secret_key = ENV['PAYSTACK_SECRET_KEY']
+          raise AuthenticationError, 'No connection or API key provided' unless env_secret_key
 
           create_connection(secret_key: env_secret_key)
         end
@@ -37,9 +37,9 @@ module PaystackSdk
         Faraday.new(url: BASE_URL) do |conn|
           conn.request :json
           conn.response :json, content_type: /\bjson$/
-          conn.headers["Authorization"] = "Bearer #{secret_key}"
-          conn.headers["Content-Type"] = "application/json"
-          conn.headers["User-Agent"] = "paystack_sdk/#{PaystackSdk::VERSION}"
+          conn.headers['Authorization'] = "Bearer #{secret_key}"
+          conn.headers['Content-Type'] = 'application/json'
+          conn.headers['User-Agent'] = "paystack_sdk/#{PaystackSdk::VERSION}"
           conn.adapter Faraday.default_adapter
         end
       end
