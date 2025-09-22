@@ -31,7 +31,8 @@ module PaystackSdk
       def mobile_money(payload)
         validate_mobile_money_payload!(payload)
 
-        response = @connection.post("/charge", payload)
+        normalized_payload = normalize_mobile_money_provider(payload)
+        response = @connection.post("/charge", normalized_payload)
         handle_response(response)
       end
 
@@ -83,12 +84,21 @@ module PaystackSdk
       end
 
       def validate_mobile_money_provider!(provider)
+        normalized = provider&.to_s&.downcase
         validate_allowed_values!(
-          value: provider&.downcase,
+          value: normalized,
           allowed_values: MOBILE_MONEY_PROVIDERS,
           name: "mobile_money provider",
           allow_nil: false
         )
+      end
+
+      def normalize_mobile_money_provider(payload)
+        mm = payload[:mobile_money] || payload["mobile_money"] || {}
+        provider = mm[:provider] || mm["provider"]
+        normalized_provider = provider&.to_s&.downcase
+        # Avoid mutating the caller's payload
+        payload.merge(mobile_money: mm.merge(provider: normalized_provider))
       end
     end
   end

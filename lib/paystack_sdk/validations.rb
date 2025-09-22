@@ -65,9 +65,9 @@ module PaystackSdk
     # @param name [String] Name of the parameter for error messages
     # @raise [PaystackSdk::MissingParamError] If value is nil or empty
     def validate_presence!(value:, name: "Parameter")
-      return unless value.nil? || (value.respond_to?(:empty?) && value.empty?)
-
-      raise PaystackSdk::MissingParamError.new(name)
+      if value.nil? || (value.respond_to?(:empty?) && value.empty?)
+        raise PaystackSdk::MissingParamError.new(name)
+      end
     end
 
     # Validates that a number is a positive integer.

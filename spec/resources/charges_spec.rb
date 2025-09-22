@@ -31,11 +31,14 @@ RSpec.describe PaystackSdk::Resources::Charges do
       expect(response.status).to eq("pay_offline")
     end
 
-    it "accepts provider codes in different cases" do
+    it "accepts provider codes in different cases and normalizes before POST" do
       payload[:mobile_money][:provider] = "MTN"
+      normalized_payload = payload.merge(
+        mobile_money: payload[:mobile_money].merge(provider: "mtn")
+      )
       response_double = double("Response", success?: true)
       expect(connection).to receive(:post)
-        .with("/charge", payload)
+        .with("/charge", normalized_payload)
         .and_return(response_double)
       expect(PaystackSdk::Response).to receive(:new).with(response_double)
         .and_return(response_double)
