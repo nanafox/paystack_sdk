@@ -14,6 +14,7 @@ The `paystack_sdk` gem provides a simple and intuitive interface for interacting
     - [List Transactions](#list-transactions)
     - [Fetch a Transaction](#fetch-a-transaction)
     - [Get Transaction Totals](#get-transaction-totals)
+  - [Charges (Mobile Money)](#charges-mobile-money)
   - [Customers](#customers)
     - [Create a Customer](#create-a-customer)
     - [List Customers](#list-customers)
@@ -30,6 +31,7 @@ The `paystack_sdk` gem provides a simple and intuitive interface for interacting
   - [Environment Variables](#environment-variables)
   - [Direct Resource Instantiation](#direct-resource-instantiation)
 - [Development](#development)
+  - [Style and Linting](#style-and-linting)
 - [Contributing](#contributing)
 - [License](#license)
 - [Code of Conduct](#code-of-conduct)
@@ -198,6 +200,65 @@ if response.success?
 else
   puts "Error: #{response.error_message}"
 end
+```
+
+### Charges (Mobile Money)
+
+Initiate Mobile Money payments using the Charges API. This channel is available to businesses in Ghana, Kenya, and Côte d'Ivoire. See the Paystack guide: https://paystack.com/docs/payments/payment-channels/#mobile-money
+
+Supported providers (case-insensitive): `mtn`, `atl` (ATMoney/Airtel Money), `vod` (Vodafone), `mpesa`, `orange`, `wave`.
+
+#### Create a Mobile Money Charge
+
+```ruby
+paystack = PaystackSdk::Client.new(secret_key: "sk_test_xxx")
+
+response = paystack.charges.mobile_money(
+  email: "customer@email.com",
+  amount: 100,             # smallest unit (pesewas/cent)
+  currency: "GHS",        # e.g., GHS, KES, XOF
+  mobile_money: {
+    phone: "0551234987",
+    provider: "mtn"       # mtn | atl | vod | mpesa | orange | wave
+  }
+)
+
+if response.success?
+  case response.status
+  when "pay_offline"
+    # Show instruction text and wait for webhook or verify later
+    puts response.display_text
+  when "send_otp"
+    # For Vodafone, collect voucher/OTP and submit below
+    puts response.display_text
+  when "success"
+    puts "Charge completed: #{response.reference}"
+  else
+    puts "Status: #{response.status}"
+  end
+else
+  puts "Charge failed: #{response.error_message}"
+end
+```
+
+#### Submit OTP (e.g., Vodafone voucher)
+
+```ruby
+otp_response = paystack.charges.submit_otp(
+  reference: "r13havfcdt7btcm",
+  otp: "123456"
+)
+
+puts otp_response.status # => "success" when authorized
+```
+
+#### Verify after timeout or via webhook
+
+For offline flows, listen for `charge.success` webhooks. You may also verify after the provider timeout window:
+
+```ruby
+verify = paystack.transactions.verify(reference: "r13havfcdt7btcm")
+puts verify.status # "success", "failed", or current state
 ```
 
 #### Verify a Transaction
@@ -641,10 +702,22 @@ For more detailed documentation on specific resources, please refer to the follo
 - [Customers](https://paystack.com/docs/api/customer/)
 - [Plans](https://paystack.com/docs/api/plan/)
 - [Subscriptions](https://paystack.com/docs/api/subscription/)
+- [Payment Channels: Mobile Money](https://paystack.com/docs/payments/payment-channels/#mobile-money)
 
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+
+### Style and Linting
+
+This project uses StandardRB for code style and linting.
+
+- Lint: `bundle exec standardrb`
+- Auto-fix: `bundle exec standardrb --fix`
+- Via Rake: `bundle exec rake standard`
+- Default task (runs specs + standard): `bundle exec rake`
+
+If you encounter cache permission issues locally, you can disable caching: `bundle exec standardrb --no-cache`.
 
 ### Testing
 
