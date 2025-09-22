@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'faraday'
-require_relative 'paystack_sdk/version'
-require_relative 'paystack_sdk/client'
+require "faraday"
+require_relative "paystack_sdk/version"
+require_relative "paystack_sdk/client"
 
 module PaystackSdk
   # Base error class for all Paystack SDK errors.
@@ -54,7 +54,7 @@ module PaystackSdk
 
   # Raised when authentication fails
   class AuthenticationError < APIError
-    def initialize(message = 'Invalid API key or authentication failed')
+    def initialize(message = "Invalid API key or authentication failed")
       super
     end
   end
@@ -83,7 +83,7 @@ module PaystackSdk
   class ServerError < APIError
     attr_reader :status_code
 
-    def initialize(status_code, message = 'An error occurred on the Paystack server')
+    def initialize(status_code, message = "An error occurred on the Paystack server")
       @status_code = status_code
       super("#{message} (Status: #{status_code})")
     end

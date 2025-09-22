@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../response'
-require_relative '../client'
-require_relative '../validations'
-require_relative '../utils/connection_utils'
+require_relative "../response"
+require_relative "../client"
+require_relative "../validations"
+require_relative "../utils/connection_utils"
 
 module PaystackSdk
   module Resources

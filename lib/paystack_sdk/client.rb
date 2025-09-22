@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require_relative 'resources/transactions'
-require_relative 'resources/customers'
-require_relative 'resources/transfer_recipients'
-require_relative 'resources/transfers'
-require_relative 'resources/banks'
-require_relative 'resources/verification'
-require_relative 'resources/charges'
-require_relative 'utils/connection_utils'
+require_relative "resources/transactions"
+require_relative "resources/customers"
+require_relative "resources/transfer_recipients"
+require_relative "resources/transfers"
+require_relative "resources/banks"
+require_relative "resources/verification"
+require_relative "resources/charges"
+require_relative "utils/connection_utils"
 
 module PaystackSdk
   # The `Client` class serves as the main entry point for interacting with the Paystack API.

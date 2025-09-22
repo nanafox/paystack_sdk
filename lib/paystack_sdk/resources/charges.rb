@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module PaystackSdk
   module Resources
@@ -31,7 +31,7 @@ module PaystackSdk
       def mobile_money(payload)
         validate_mobile_money_payload!(payload)
 
-        response = @connection.post('/charge', payload)
+        response = @connection.post("/charge", payload)
         handle_response(response)
       end
 
@@ -47,12 +47,12 @@ module PaystackSdk
         validate_fields!(
           payload: payload,
           validations: {
-            otp: { type: :string, required: true },
-            reference: { type: :reference, required: true }
+            otp: {type: :string, required: true},
+            reference: {type: :reference, required: true}
           }
         )
 
-        response = @connection.post('/charge/submit_otp', payload)
+        response = @connection.post("/charge/submit_otp", payload)
         handle_response(response)
       end
 
@@ -62,23 +62,23 @@ module PaystackSdk
         validate_fields!(
           payload: payload,
           validations: {
-            email: { type: :email, required: true },
-            amount: { type: :positive_integer, required: true },
-            currency: { type: :currency, required: false },
-            reference: { type: :reference, required: false },
-            callback_url: { required: false },
-            metadata: { required: false },
-            mobile_money: { required: true }
+            email: {type: :email, required: true},
+            amount: {type: :positive_integer, required: true},
+            currency: {type: :currency, required: false},
+            reference: {type: :reference, required: false},
+            callback_url: {required: false},
+            metadata: {required: false},
+            mobile_money: {required: true}
           }
         )
 
-        mobile_money = payload[:mobile_money] || payload['mobile_money']
-        validate_hash!(input: mobile_money, name: 'mobile_money')
+        mobile_money = payload[:mobile_money] || payload["mobile_money"]
+        validate_hash!(input: mobile_money, name: "mobile_money")
 
-        phone = mobile_money[:phone] || mobile_money['phone']
-        validate_presence!(value: phone, name: 'mobile_money phone')
+        phone = mobile_money[:phone] || mobile_money["phone"]
+        validate_presence!(value: phone, name: "mobile_money phone")
 
-        provider = mobile_money[:provider] || mobile_money['provider']
+        provider = mobile_money[:provider] || mobile_money["provider"]
         validate_mobile_money_provider!(provider)
       end
 
@@ -86,7 +86,7 @@ module PaystackSdk
         validate_allowed_values!(
           value: provider&.downcase,
           allowed_values: MOBILE_MONEY_PROVIDERS,
-          name: 'mobile_money provider',
+          name: "mobile_money provider",
           allow_nil: false
         )
       end
