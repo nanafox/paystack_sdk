@@ -204,7 +204,7 @@ end
 
 ### Charges (Mobile Money)
 
-Initiate Mobile Money payments using the Charges API. This channel is available to businesses in Ghana, Kenya, and Côte d'Ivoire. See the Paystack guide: https://paystack.com/docs/payments/payment-channels/#mobile-money
+Initiate Mobile Money payments using the Charges API. This channel is available to businesses in Ghana, Kenya, and Côte d'Ivoire. See the Paystack guide: [Mobile Money](https://paystack.com/docs/payments/payment-channels/#mobile-money).
 
 Supported providers (case-insensitive): `mtn`, `atl` (ATMoney/Airtel Money), `vod` (Vodafone), `mpesa`, `orange`, `wave`.
 
@@ -254,7 +254,7 @@ puts otp_response.status # => "success" when authorized
 
 #### Verify after timeout or via webhook
 
-For offline flows, listen for `charge.success` webhooks. You may also verify after the provider timeout window:
+For offline flows, listen for `charge.success` webhooks. You may also verify after the provider timeout window. Note: `transactions.verify` expects a transaction reference (often the same `reference` you supplied when creating the charge once it converts to a transaction):
 
 ```ruby
 verify = paystack.transactions.verify(reference: "r13havfcdt7btcm")
@@ -710,7 +710,13 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 
 ### Style and Linting
 
-This project uses StandardRB for code style and linting.
+This project uses [StandardRB](https://github.com/standardrb/standard) for code style and linting.
+
+Add to your Gemfile (if not already present):
+
+```ruby
+gem "standard"
+```
 
 - Lint: `bundle exec standardrb`
 - Auto-fix: `bundle exec standardrb --fix`
