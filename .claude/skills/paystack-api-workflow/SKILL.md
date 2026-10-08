@@ -50,6 +50,35 @@ Never treat third-party posts, other SDKs or blog articles as evidence. They can
    ```
 7. **Open the PR** with a *Verification* section (see below), a CHANGELOG entry under `[Unreleased]`, and README updates if user-visible.
 
+## Conventions for endpoint methods
+
+The SDK is idiomatic and opinionated in Ruby and exact on the wire.
+
+- **Keywords for every parameter.** Path parameters first, then required ones, then optional ones with `nil` defaults. Declaring them explicitly means Ruby rejects a typo (`referance:`) instead of silently sending nothing.
+- **snake_case in Ruby, Paystack's names on the wire.** `per_page:` is sent as `perPage` where the docs say so. The mapping lives in one `WIRE_NAMES` constant per resource, applied by `to_wire`. Keywords that clash with Ruby (`next`) get a suffix (`next_cursor`).
+- **Names follow the canonical docs, not the spec,** when the two disagree. Record the difference in `spec/support/paystack_contract_exceptions.yml` (set `ruby:` when the idiomatic keyword is not the snake_case of the wire name).
+- **Helpers** (`RequestHelpers`, all private): `escape_path` for every path segment (it also refuses `.`, `..` and empty values, which the URL builder would resolve to a different endpoint), `to_wire` to rename and drop nils, `format_datetime` / `format_date` for Date, Time or ISO strings, `stringify_json` for fields the spec calls "stringified JSON".
+- **Validate** required values with `validate_presence!` and spec enums with `validate_allowed_values!`. Do not invent rules the spec and docs do not state.
+- **Bodies.** POST/PUT send a JSON body; a few DELETEs do too (`request.body =`); one endpoint takes a JSON array.
+- **Method names** are the operation's verb without the resource noun: `create`, `list`, `fetch`, `update`, `verify`, `submit_otp`.
+- **Always document** with `@param` types, `@return`, `@raise` and a `@see` link to the canonical docs anchor.
+
+## Starting a resource: `bin/paystack-scaffold`
+
+```sh
+bin/paystack-scaffold --tags                    # the 27 tags and their operation counts
+bin/paystack-scaffold Refund --dry-run          # say what would be created; write nothing
+bin/paystack-scaffold Refund                    # create the class, its specs and the Client wiring
+bin/paystack-scaffold Refund --destroy          # undo it (add --dry-run to preview)
+bin/paystack-scaffold Refund --print            # print the class instead (--print --spec: the specs)
+```
+
+It creates `lib/paystack_sdk/resources/<name>.rb` and `spec/resources/<name>_spec.rb`, adds the `require` and the `client.<name>` accessor to `Client`, and reports each step Rails style (`create`, `insert`, `identical`, `conflict`, `force`, `remove`, `skip`). It is safe to run twice. **It protects your work.** A file that git tracks and the scaffold did not write is **never** overwritten or removed, even with `--force` (`protected`): use `git rm` / `git mv` yourself if you mean to replace it. An *untracked* file you edited needs `--force`, is copied to `tmp/scaffold-backups/<timestamp>/` first (gitignored), and the report says how many lines it replaced or removed. A file that is exactly what the scaffold would write can be removed with plain `--destroy`. Any conflict leaves `Client` untouched, and a hand-written `client.<name>` accessor (and its `require`) is never removed. Use `--dry-run` first. `--skip-spec` leaves the specs out.
+
+The generated specs send real requests through the contract checker, so they prove the request conforms to the spec. Its output is already StandardRB-clean, with long signatures wrapped one keyword per line and the wire hash built in a named local.
+
+**Treat everything it writes as a draft:** read each operation on the canonical docs page, then fix method names, descriptions (Paystack's spec has copy-paste errors, e.g. `percentage_charge` is described as "Customer's phone number"), enum and format rules the docs add, and any docs-versus-spec name differences. Then add a README section and a CHANGELOG entry, and run `bundle exec rspec`, `bundle exec standardrb` and `bin/paystack-spec audit`.
+
 ## Facts already verified (with source)
 
 - Amounts are in the subunit (kobo, pesewas, cents). XOF has no subunit, multiply by 100. (Paystack `llms.txt`)

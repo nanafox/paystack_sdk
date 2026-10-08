@@ -3,6 +3,7 @@
 require_relative "../response"
 require_relative "../client"
 require_relative "../validations"
+require_relative "../request_helpers"
 require_relative "../utils/connection_utils"
 
 module PaystackSdk
@@ -11,6 +12,7 @@ module PaystackSdk
     # It provides shared functionality, such as handling API responses.
     class Base
       include PaystackSdk::Validations
+      include PaystackSdk::RequestHelpers
       include PaystackSdk::Utils::ConnectionUtils
 
       # Initializes a new `Base` instance.
