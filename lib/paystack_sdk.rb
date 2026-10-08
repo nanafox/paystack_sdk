@@ -4,6 +4,7 @@ require "faraday"
 require "faraday/retry"
 require_relative "paystack_sdk/version"
 require_relative "paystack_sdk/client"
+require_relative "paystack_sdk/webhook"
 
 module PaystackSdk
   # Base error class for all Paystack SDK errors.
@@ -98,4 +99,18 @@ module PaystackSdk
       super("#{message} (Status: #{status_code})")
     end
   end
+
+  # Base class for webhook errors.
+  class WebhookError < Error; end
+
+  # Raised when a webhook's signature does not match its payload.
+  # Treat the request as not coming from Paystack.
+  class InvalidSignatureError < WebhookError
+    def initialize(message = "Webhook signature does not match the payload")
+      super
+    end
+  end
+
+  # Raised when a correctly signed webhook body is not a JSON event.
+  class InvalidPayloadError < WebhookError; end
 end

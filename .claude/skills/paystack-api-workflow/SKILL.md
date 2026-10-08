@@ -56,12 +56,15 @@ Never treat third-party posts, other SDKs or blog articles as evidence. They can
 - `POST /transfer` requires `amount`, `recipient`, `reference`, `source`. `reference` is documented as "to ensure idempotency… a unique identifier". (OpenAPI `TransferBase` + `TransferInitiate`)
 - Deactivate an authorization: `POST /customer/authorization/deactivate`, body `authorization_code`. (docs + OpenAPI)
 
+- Webhooks: events carry `x-paystack-signature`, a lowercase hex HMAC SHA512 of the raw body using the secret key; verify it before processing. Paystack sends only from `52.31.139.75`, `52.49.173.169`, `52.214.14.220` (test and live). Unacknowledged events are retried: live every 3 minutes for 4 tries then hourly for 72 hours, test hourly for 10 hours, 30-second timeout. The body is `{"event": "...", "data": {...}}`. (docs: payments/webhooks page)
+
 ## Still unverified (do not rely on these)
 
 - What Paystack returns when a `reference` is reused on transfers or charges (existing record vs error).
 - Whether `x-ratelimit-reset` is seconds-from-now or an epoch value on a real 429.
 - That a 429 means the request was not processed.
 - Which statuses (beyond 429) are safe to retry on writes.
+- Whether webhook payloads carry a unique event id for de-duplication (the docs do not show one), and the exact `data` shape of each event (only one example is visible in the mirrored page).
 
 Update this list when something is confirmed, and cite the source.
 

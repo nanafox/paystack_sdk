@@ -10,6 +10,7 @@
 
 ### Added
 
+- `PaystackSdk::Webhook` verifies Paystack webhook signatures (HMAC SHA512, constant-time) and parses events: `valid_signature?`, `verify!`, `construct_event`, `sign`, `trusted_ip?`, plus the documented `EVENTS` and `IP_ADDRESSES`. New errors: `WebhookError`, `InvalidSignatureError`, `InvalidPayloadError`.
 - `Response#meta` exposes the pagination metadata (`total`, `page`, `pageCount`, `perPage`) that list endpoints return.
 - Default request timeouts (`timeout`, `open_timeout`) and automatic retries with backoff (`max_retries`, `retry_interval`, `retry_non_idempotent`) on SDK-built connections. Writes are only retried on `429`; `GET`s are also retried on network failures and 502/503/504.
 - `PaystackSdk::TimeoutError` and `PaystackSdk::ConnectionError` wrap transport failures.
