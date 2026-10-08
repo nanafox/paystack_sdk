@@ -39,9 +39,10 @@ Never treat third-party posts, other SDKs or blog articles as evidence. They can
    - Add `@see https://paystack.com/docs/api/<resource>/#<anchor>` to the method.
    - Keep to the repo's error model: validation errors raise before any request; 4xx (except 401/429) come back as unsuccessful `Response`; 401, 429, 5xx and transport failures raise.
 5. **Spec it so it can't hide the same bug.**
-   - Assert the exact documented path and body in the connection double.
-   - Cover each required field missing, and each enum/format rule you added.
-   - Mocks only prove the code does what the spec says. The audit proves the code matches Paystack.
+   - Send a **real request** through `PaystackSdk::Client` with WebMock (`stub_request(:post, "https://api.paystack.co/...")`), not a connection double. `spec/support/paystack_contract.rb` then checks every request to api.paystack.co against the pinned OpenAPI spec (operation, query names, body fields, types, enums, formats, required fields, bearer auth) and fails the example if it does not conform. Doubles only prove the code does what the code does.
+   - Assert the exact path and body too, and cover each required field missing and each rule you added.
+   - Where the canonical docs and the spec disagree on a name, follow the docs and record it, with its docs URL and when it was confirmed, in `spec/support/paystack_contract_exceptions.yml`. Never add an exception from the spec or the mirror alone.
+   - Opt out with `contract: false` only for specs that send odd requests on purpose (transport tests), with a comment saying why.
 6. **Run the audit; it must exit 0.**
    ```sh
    bin/paystack-spec audit    # lists SDK calls with no matching spec operation; exit 1 if any (CI runs it offline)

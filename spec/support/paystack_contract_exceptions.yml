@@ -1,0 +1,54 @@
+# Places where what the SDK sends deliberately differs from Paystack's OpenAPI spec.
+#
+# The spec is the default authority, but it can disagree with Paystack's canonical docs
+# (https://paystack.com/docs/api/). Where the docs are right, the request follows the docs and the
+# difference is recorded here, with its source, so every deviation is deliberate and reviewable.
+#
+# Each entry:
+#   operation: "METHOD /path"  as written in the spec
+#   in:        query | body
+#   wire:      the name the SDK sends (as the canonical docs name it)
+#   spec:      the name the OpenAPI spec uses for the same parameter
+#   type:      optional; the type to check the value against when the docs and spec disagree on it
+#   ruby:      optional; the idiomatic Ruby keyword when it is not just the snake_case of `wire`
+#   reason / docs: why, and where it was confirmed
+#
+# Never add an entry from the spec or the docs mirror alone: confirm it on the canonical page.
+
+- operation: "GET /transaction"
+  in: query
+  wire: perPage
+  spec: per_page
+  reason: Canonical docs list perPage on List Transactions; the spec says per_page.
+  docs: https://paystack.com/docs/api/transaction/#list
+
+- operation: "GET /transaction"
+  in: query
+  wire: customer
+  spec: customer_code
+  type: integer
+  reason: Canonical docs list customer as an integer customer ID; the spec says customer_code, a string.
+  docs: https://paystack.com/docs/api/transaction/#list
+
+- operation: "GET /transaction"
+  in: query
+  wire: terminalid
+  spec: terminal_id
+  ruby: terminal_id
+  reason: Canonical docs list terminalid; the spec says terminal_id.
+  docs: https://paystack.com/docs/api/transaction/#list
+
+- operation: "GET /transfer"
+  in: query
+  wire: perPage
+  spec: per_page
+  reason: Canonical docs list perPage on List Transfers; the spec says per_page.
+  docs: https://paystack.com/docs/api/transfer/#list
+
+- operation: "GET /transfer"
+  in: query
+  wire: recipient
+  spec: recipient
+  type: integer
+  reason: Canonical docs list recipient as an integer recipient ID; the spec describes a recipient code.
+  docs: https://paystack.com/docs/api/transfer/#list
