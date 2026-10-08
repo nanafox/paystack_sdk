@@ -1,0 +1,147 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Compares this SDK against Paystack's official OpenAPI spec
+# (https://github.com/PaystackOSS/openapi, dist/paystack.yaml).
+#
+#   bin/paystack-spec audit                 # coverage + endpoints the SDK calls that the spec lacks
+#   bin/paystack-spec missing [Tag]         # spec operations the SDK does not implement (optionally one tag)
+#   bin/paystack-spec show METHOD /path     # what the spec says about one operation
+#
+# Options:
+#   --spec PATH   use a local copy of paystack.yaml instead of downloading it
+#
+# The spec gives paths, methods, required fields and enums. It does NOT replace
+# the prose docs (https://paystack.com/docs/api/) for behaviour such as rate
+# limits or idempotency. See .claude/skills/paystack-api-workflow/SKILL.md.
+
+require "net/http"
+require "uri"
+require "yaml"
+require "tmpdir"
+require "optparse"
+
+SPEC_URL = "https://raw.githubusercontent.com/PaystackOSS/openapi/main/dist/paystack.yaml"
+RESOURCES_GLOB = File.expand_path("../lib/paystack_sdk/resources/*.rb", __dir__)
+HTTP_METHODS = %w[get post put delete patch].freeze
+
+spec_path = nil
+OptionParser.new { |o| o.on("--spec PATH") { |v| spec_path = v } }.parse!
+
+CACHE = File.join(Dir.tmpdir, "paystack-openapi.yaml")
+
+def load_spec(path)
+  unless path
+    path = CACHE
+    unless File.exist?(CACHE) && Time.now - File.mtime(CACHE) < 6 * 3600
+      response = Net::HTTP.get_response(URI(SPEC_URL))
+      abort "Could not download the spec (HTTP #{response.code}). Pass --spec PATH." unless response.is_a?(Net::HTTPSuccess)
+      File.write(CACHE, response.body)
+    end
+  end
+  YAML.safe_load_file(path, aliases: true)
+end
+
+def normalize(path)
+  path = "/#{path}" unless path.start_with?("/")
+  path.gsub(/\{[^}]+\}/, "{x}")
+end
+
+def operations(spec)
+  spec["paths"].each_with_object({}) do |(path, item), ops|
+    item.each do |verb, op|
+      next unless HTTP_METHODS.include?(verb)
+      ops[[verb.upcase, normalize(path)]] = {path: path, op: op}
+    end
+  end
+end
+
+def implemented
+  Dir[RESOURCES_GLOB].each_with_object({}) do |file, found|
+    File.read(file).scan(/@connection\.(get|post|put|delete)\(\s*"([^"]+)"/) do |verb, path|
+      found[[verb.upcase, normalize(path.gsub(/#\{[^}]+\}/, "{x}"))]] = File.basename(file)
+    end
+  end
+end
+
+def resolve(spec, node)
+  while node.is_a?(Hash) && node["$ref"]
+    node = node["$ref"].delete_prefix("#/").split("/").reduce(spec) { |cur, part| cur.fetch(part) }
+  end
+  node
+end
+
+# Flattens allOf so required fields declared in a base schema are not missed.
+def flatten(spec, schema)
+  schema = resolve(spec, schema)
+  return {"required" => [], "properties" => {}} unless schema.is_a?(Hash)
+
+  parts = (schema["allOf"] || []).map { |s| flatten(spec, s) }
+  parts << {"required" => schema["required"] || [], "properties" => schema["properties"] || {}}
+  {
+    "required" => parts.flat_map { |p| p["required"] }.uniq,
+    "properties" => parts.reduce({}) { |acc, p| acc.merge(p["properties"]) }
+  }
+end
+
+def body_schema(spec, op)
+  content = resolve(spec, op["requestBody"] || {}).fetch("content", {})
+  schema = content.values.first&.fetch("schema", nil)
+  schema && flatten(spec, schema)
+end
+
+spec = load_spec(spec_path)
+ops = operations(spec)
+ours = implemented
+
+case ARGV.shift
+when "audit"
+  covered = ours.keys & ops.keys
+  puts "Spec operations: #{ops.size}   SDK covers: #{covered.size} (#{(100.0 * covered.size / ops.size).round}%)"
+  drift = ours.keys - ops.keys
+  if drift.empty?
+    puts "Every endpoint the SDK calls exists in the spec."
+  else
+    puts "\nSDK calls these but the spec has no such operation (check the docs; likely a bug):"
+    drift.each { |verb, path| puts "  #{verb} #{path}   (#{ours[[verb, path]]})" }
+  end
+  puts "\nCoverage by tag:"
+  ops.group_by { |_, v| v[:op]["tags"]&.first || "?" }.sort.each do |tag, list|
+    done = list.count { |key, _| ours.key?(key) }
+    puts format("  %-26s %2d / %2d", tag, done, list.size)
+  end
+  exit(drift.empty? ? 0 : 1)
+when "missing"
+  tag = ARGV.shift
+  ops.each do |(verb, _), v|
+    next if ours.key?([verb, normalize(v[:path])])
+    next if tag && v[:op]["tags"]&.first&.casecmp?(tag) == false
+    puts format("%-7s %-55s %s", verb, v[:path], v[:op]["summary"])
+  end
+when "show"
+  verb, path = ARGV.shift&.upcase, ARGV.shift
+  abort "usage: bin/paystack-spec show METHOD /path" unless verb && path
+  entry = ops[[verb, normalize(path)]] or abort "No such operation in the spec: #{verb} #{path}"
+  op = entry[:op]
+  puts "#{verb} #{entry[:path]}  (#{op["tags"]&.first})"
+  puts op["summary"]
+  puts op["description"].to_s.strip unless op["description"].to_s.strip.empty?
+  schema = body_schema(spec, op)
+  if schema
+    puts "\nBody fields (* = required):"
+    schema["properties"].each do |name, prop|
+      prop = resolve(spec, prop)
+      mark = schema["required"].include?(name) ? "*" : " "
+      enum = prop["enum"] ? "  enum: #{prop["enum"].join(", ")}" : ""
+      puts format(" %s %-24s %-8s %s%s", mark, name, prop["type"], prop["description"].to_s.strip.tr("\n", " ")[0, 110], enum)
+    end
+  end
+  params = (op["parameters"] || []).map { |p| resolve(spec, p) }
+  unless params.empty?
+    puts "\nParameters:"
+    params.each { |p| puts format(" %s %-8s %-20s %s", p["required"] ? "*" : " ", p["in"], p["name"], p["description"].to_s.strip.tr("\n", " ")[0, 110]) }
+  end
+  puts "\nSDK: #{ours[[verb, normalize(path)]] || "not implemented"}"
+else
+  abort "usage: bin/paystack-spec audit | missing [Tag] | show METHOD /path   [--spec PATH]"
+end
