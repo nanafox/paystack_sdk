@@ -16,7 +16,7 @@ module PaystackSdk
       # @see https://paystack.com/docs/api/verification/#resolve-card-bin
       def resolve_card_bin(bin)
         validate_presence!(value: bin, name: "bin")
-        handle_response(@connection.get("/decision/bin/#{bin}"))
+        handle_response(@connection.get("/decision/bin/#{escape_path(bin, name: "bin")}"))
       end
 
       # Validate Account

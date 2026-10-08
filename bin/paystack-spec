@@ -30,6 +30,10 @@ SPEC_URL = "https://raw.githubusercontent.com/PaystackOSS/openapi/main/dist/pays
 RESOURCES_GLOB = File.expand_path("../lib/paystack_sdk/resources/*.rb", __dir__)
 HTTP_METHODS = %w[get post put delete patch].freeze
 
+# `@connection.get("/path/...")`: the first string argument, whose #{interpolations} may contain
+# quotes of their own, as in "/transfer/#{escape_path(code, name: "code")}".
+PATH_PATTERN = /@connection\.(get|post|put|delete)\(\s*"((?:#\{[^}]*\}|[^"])*)"/
+
 spec_path = nil
 OptionParser.new { |o| o.on("--spec PATH") { |v| spec_path = v } }.parse!
 
@@ -64,7 +68,7 @@ end
 
 def implemented
   Dir[RESOURCES_GLOB].each_with_object({}) do |file, found|
-    File.read(file).scan(/@connection\.(get|post|put|delete)\(\s*"([^"]+)"/) do |verb, path|
+    File.read(file).scan(PATH_PATTERN) do |verb, path|
       found[[verb.upcase, normalize(path.gsub(/#\{[^}]+\}/, "{x}"))]] = File.basename(file)
     end
   end
