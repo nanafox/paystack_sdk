@@ -35,8 +35,8 @@ module PaystackSdk
     #
     # @example With default connection (requires PAYSTACK_SECRET_KEY environment variable)
     #   client = PaystackSdk::Client.new
-    def initialize(connection = nil, secret_key: nil)
-      @connection = initialize_connection(connection, secret_key: secret_key)
+    def initialize(connection = nil, secret_key: nil, **options)
+      @connection = initialize_connection(connection, secret_key: secret_key, **options)
     end
 
     # Provides access to the `Transactions` resource.

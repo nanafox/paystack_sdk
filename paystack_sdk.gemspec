@@ -38,11 +38,13 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # Dependencies
-  spec.add_dependency "faraday", "~> 2.13.1"
+  spec.add_dependency "faraday", ">= 2.13", "< 3"
+  spec.add_dependency "faraday-retry", "~> 2.3"
   spec.add_development_dependency "debug", "~> 1.9.0"
   spec.add_development_dependency "irb", "~> 1.15.1"
   spec.add_development_dependency "rake", "~> 13.2.1"
   spec.add_development_dependency "rspec", "~> 3.13"
+  spec.add_development_dependency "webmock", "~> 3.25"
   spec.add_development_dependency "standard", "~> 1.49.0"
 
   # For more information and examples about making a new gem, check out our

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "debug"
+require "webmock/rspec"
 require_relative "../lib/paystack_sdk"
 
 RSpec.configure do |config|
