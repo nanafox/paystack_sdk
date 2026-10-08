@@ -60,6 +60,19 @@ module PaystackSdk
     # @return [Integer] The status code of the API response
     attr_reader :status_code
 
+    # Pagination metadata that Paystack returns with list responses
+    # (e.g. `total`, `page`, `pageCount`, `perPage`).
+    #
+    # @return [Response, nil] The wrapped `meta` object, or nil if the response has none
+    #
+    # @example
+    #   response = transactions.list
+    #   response.meta.total       # => 40
+    #   response.meta.pageCount   # => 2
+    def meta
+      @meta ||= wrap_value(@raw_meta) if @raw_meta
+    end
+
     # Initializes a new Response object
     #
     # @param response [Faraday::Response, Hash, Array] The raw API response or data
@@ -75,6 +88,7 @@ module PaystackSdk
         @api_message = extract_api_message(@body)
         @message = @api_message
         @raw_data = extract_data_from_body(@body)
+        @raw_meta = @body["meta"] if @body.is_a?(Hash) && @body["meta"].is_a?(Hash)
 
         case @status_code
         when 200..299
@@ -102,6 +116,7 @@ module PaystackSdk
         @error_message = response.error_message
         @api_message = response.api_message
         @raw_data = response.raw_data
+        @raw_meta = response.raw_meta
       else
         @success = true
         @raw_data = response
@@ -181,7 +196,8 @@ module PaystackSdk
         super
     end
 
-    # Access data via hash/array notation
+    # Access data via hash/array notation.
+    # Hash keys can be given as strings or symbols, whichever way the data is keyed.
     #
     # @param key [Object] The key or index to access
     # @return [Object, Response] The value for the given key or index
@@ -189,19 +205,19 @@ module PaystackSdk
       return nil unless @raw_data
 
       if @raw_data.is_a?(Hash)
-        value = @raw_data[key.is_a?(String) ? key.to_sym : key]
-        wrap_value(value)
+        actual_key = lookup_key(key)
+        wrap_value(@raw_data[actual_key]) unless actual_key.nil?
       elsif @raw_data.is_a?(Array) && key.is_a?(Integer)
         wrap_value(@raw_data[key])
       end
     end
 
-    # Check if key exists in hash
+    # Check if key exists in hash (as a string or a symbol)
     #
     # @param key [Symbol, String] The key to check
     # @return [Boolean] Whether the key exists
     def key?(key)
-      @raw_data.is_a?(Hash) && @raw_data.key?(key.is_a?(String) ? key.to_sym : key)
+      @raw_data.is_a?(Hash) && !lookup_key(key).nil?
     end
 
     # Iterate through hash entries or array items
@@ -248,7 +264,25 @@ module PaystackSdk
       end
     end
 
+    protected
+
+    # @return [Hash, nil] The unwrapped `meta` from the response body
+    attr_reader :raw_meta
+
     private
+
+    # Finds the key actually used in the data for a string or symbol lookup.
+    #
+    # @return [Object, nil] The key present in the data, or nil if there is none
+    def lookup_key(key)
+      return key if @raw_data.key?(key)
+
+      alternate = case key
+      when String then key.to_sym
+      when Symbol then key.to_s
+      end
+      alternate if !alternate.nil? && @raw_data.key?(alternate)
+    end
 
     # Seconds until the rate-limit window ends, from Paystack's
     # `x-ratelimit-reset` header (nil if absent, not numeric, negative or not finite).

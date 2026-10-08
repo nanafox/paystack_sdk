@@ -4,11 +4,13 @@
 
 ### Fixed
 
+- `Response#[]` and `Response#key?` returned `nil`/`false` for every key on real Paystack bodies (string keys). Both now accept strings or symbols.
 - `Customers#deactivate_authorization` called a non-existent endpoint (`customer/deactivate_authorization`). It now posts to Paystack's documented `POST /customer/authorization/deactivate`.
 - `429` responses now raise `RateLimitError` (previously swallowed as a client error because the `400..499` branch matched first). `retry_after` is read from Paystack's `x-ratelimit-reset` header (nil when absent) instead of the undocumented `Retry-After`.
 
 ### Added
 
+- `Response#meta` exposes the pagination metadata (`total`, `page`, `pageCount`, `perPage`) that list endpoints return.
 - Default request timeouts (`timeout`, `open_timeout`) and automatic retries with backoff (`max_retries`, `retry_interval`, `retry_non_idempotent`) on SDK-built connections. Writes are only retried on `429`; `GET`s are also retried on network failures and 502/503/504.
 - `PaystackSdk::TimeoutError` and `PaystackSdk::ConnectionError` wrap transport failures.
 - Connection options are validated and raise `ArgumentError` when invalid or when combined with a pre-built connection.
