@@ -11,7 +11,8 @@ Ruby SDK for the Paystack API. Faraday-based, no Rails dependency.
 ```sh
 bundle exec rspec                 # tests (WebMock is loaded in spec_helper)
 bundle exec standardrb            # lint/format (StandardRB, not RuboCop)
-bin/paystack-spec audit           # SDK vs Paystack's OpenAPI spec; must exit 0
+bin/paystack-spec audit           # SDK vs Paystack's OpenAPI spec (pinned, offline); must exit 0
+bin/paystack-spec update          # refresh the pinned spec from upstream and show what changed
 bin/paystack-spec show POST /transfer
 bin/paystack-spec missing Customer
 ```
