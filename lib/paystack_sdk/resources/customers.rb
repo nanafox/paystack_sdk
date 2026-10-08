@@ -168,6 +168,7 @@ module PaystackSdk
 
       # Deactivates a customer's authorization.
       #
+      # @see https://paystack.com/docs/api/customer/#deactivate-authorization
       # @param payload [Hash] The payload containing authorization details
       # @option payload [String] :authorization_code (required) Authorization code to deactivate
       # @return [PaystackSdk::Response] The response from the Paystack API.
@@ -180,7 +181,7 @@ module PaystackSdk
           }
         )
 
-        response = @connection.post("customer/deactivate_authorization", payload)
+        response = @connection.post("/customer/authorization/deactivate", payload)
         handle_response(response)
       end
     end
