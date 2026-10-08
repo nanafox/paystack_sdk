@@ -552,6 +552,12 @@ response.authorization_url  # Same as response.data.authorization_url
 # Access nested data
 response.data.customer.email
 
+# Hash-style access works with strings or symbols
+response[:reference]
+response["reference"]
+response[:customer][:email]
+response.key?(:reference)  # => true
+
 # For arrays, use array methods
 response.data.first  # First item in an array
 response.data.last   # Last item in an array
@@ -563,6 +569,21 @@ response.data.each do |item|
 end
 ```
 
+#### Pagination Metadata
+
+List responses carry Paystack's pagination details in `meta`:
+
+```ruby
+response = paystack.transactions.list(per_page: 20)
+
+response.meta.total      # => 40
+response.meta.page       # => 1
+response.meta.pageCount  # => 2
+response.meta.perPage    # => 20
+```
+
+`response.meta` is `nil` when the response has no `meta`.
+
 #### Accessing the Original Response
 
 Sometimes you may need access to the original API response:
@@ -573,9 +594,8 @@ response = paystack.transactions.list
 # Access the original response body
 original = response.original_response
 
-# Access metadata from the original response
-total_count = original.dig("meta", "total")
-current_page = original.dig("meta", "page")
+# Anything else in the body is still reachable
+original.dig("meta", "total")
 ```
 
 #### Exception Handling
