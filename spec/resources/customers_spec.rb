@@ -287,7 +287,7 @@ RSpec.describe PaystackSdk::Resources::Customers do
         faraday_response = Faraday::Response.new(status: 200, body: response_body)
 
         expect(connection).to receive(:post)
-          .with("customer/deactivate_authorization", params)
+          .with("/customer/authorization/deactivate", params)
           .and_return(faraday_response)
 
         response = customers.deactivate_authorization(params)
