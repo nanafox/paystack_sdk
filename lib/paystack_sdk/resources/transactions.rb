@@ -80,7 +80,7 @@ module PaystackSdk
       def verify(reference:)
         validate_presence!(value: reference, name: "Reference")
 
-        response = @connection.get("/transaction/verify/#{reference}")
+        response = @connection.get("/transaction/verify/#{escape_path(reference, name: "reference")}")
         handle_response(response)
       end
 
@@ -138,7 +138,7 @@ module PaystackSdk
       def fetch(transaction_id)
         validate_presence!(value: transaction_id, name: "Transaction ID")
 
-        response = @connection.get("/transaction/#{transaction_id}")
+        response = @connection.get("/transaction/#{escape_path(transaction_id, name: "transaction_id")}")
         handle_response(response)
       end
 
@@ -289,7 +289,7 @@ module PaystackSdk
       def timeline(id_or_reference)
         validate_presence!(value: id_or_reference, name: "Transaction ID or Reference")
 
-        response = @connection.get("/transaction/timeline/#{id_or_reference}")
+        response = @connection.get("/transaction/timeline/#{escape_path(id_or_reference, name: "id_or_reference")}")
         handle_response(response)
       end
     end

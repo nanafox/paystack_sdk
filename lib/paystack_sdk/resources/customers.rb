@@ -84,7 +84,7 @@ module PaystackSdk
       # @raise [PaystackSdk::Error] If the parameter is invalid or the API request fails.
       def fetch(email_or_code)
         validate_presence!(value: email_or_code, name: "email_or_code")
-        response = @connection.get("customer/#{email_or_code}")
+        response = @connection.get("customer/#{escape_path(email_or_code, name: "email_or_code")}")
         handle_response(response)
       end
 
@@ -102,7 +102,7 @@ module PaystackSdk
         validate_presence!(value: code, name: "code")
         validate_hash!(input: payload, name: "payload")
 
-        response = @connection.put("customer/#{code}", payload)
+        response = @connection.put("customer/#{escape_path(code, name: "code")}", payload)
         handle_response(response)
       end
 
@@ -131,7 +131,7 @@ module PaystackSdk
           }
         )
 
-        response = @connection.post("customer/#{code}/identification", payload)
+        response = @connection.post("customer/#{escape_path(code, name: "code")}/identification", payload)
         handle_response(response)
       end
 

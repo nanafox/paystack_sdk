@@ -25,7 +25,7 @@ module PaystackSdk
       # @see https://paystack.com/docs/api/transfer/#fetch
       def fetch(id:)
         validate_presence!(value: id, name: "transfer id")
-        handle_response(@connection.get("/transfer/#{id}"))
+        handle_response(@connection.get("/transfer/#{escape_path(id, name: "id")}"))
       end
 
       # Finalize a transfer (OTP)
@@ -40,7 +40,7 @@ module PaystackSdk
       # @see https://paystack.com/docs/api/transfer/#verify
       def verify(reference:)
         validate_presence!(value: reference, name: "reference")
-        handle_response(@connection.get("/transfer/verify/#{reference}"))
+        handle_response(@connection.get("/transfer/verify/#{escape_path(reference, name: "reference")}"))
       end
     end
   end

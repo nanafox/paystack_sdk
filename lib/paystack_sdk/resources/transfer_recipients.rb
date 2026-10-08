@@ -25,7 +25,7 @@ module PaystackSdk
       # @see https://paystack.com/docs/api/transfer-recipient/#fetch
       def fetch(recipient_code:)
         validate_presence!(value: recipient_code, name: "recipient_code")
-        handle_response(@connection.get("/transferrecipient/#{recipient_code}"))
+        handle_response(@connection.get("/transferrecipient/#{escape_path(recipient_code, name: "recipient_code")}"))
       end
 
       # Update a transfer recipient
@@ -33,14 +33,14 @@ module PaystackSdk
       def update(recipient_code:, params:)
         validate_presence!(value: recipient_code, name: "recipient_code")
         validate_hash!(input: params, name: "Update TransferRecipient params")
-        handle_response(@connection.put("/transferrecipient/#{recipient_code}", params))
+        handle_response(@connection.put("/transferrecipient/#{escape_path(recipient_code, name: "recipient_code")}", params))
       end
 
       # Delete a transfer recipient
       # @see https://paystack.com/docs/api/transfer-recipient/#delete
       def delete(recipient_code:)
         validate_presence!(value: recipient_code, name: "recipient_code")
-        handle_response(@connection.delete("/transferrecipient/#{recipient_code}"))
+        handle_response(@connection.delete("/transferrecipient/#{escape_path(recipient_code, name: "recipient_code")}"))
       end
     end
   end
