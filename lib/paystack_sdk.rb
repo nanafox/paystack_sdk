@@ -71,11 +71,13 @@ module PaystackSdk
 
   # Raised when rate limiting is encountered
   class RateLimitError < APIError
+    # @return [Integer, nil] Seconds until the rate-limit window ends, from the
+    #   `x-ratelimit-reset` header, or nil if Paystack did not send it
     attr_reader :retry_after
 
-    def initialize(retry_after)
+    def initialize(retry_after = nil)
       @retry_after = retry_after
-      super("Rate limit exceeded. Retry after #{retry_after} seconds")
+      super(retry_after ? "Rate limit exceeded. Retry after #{retry_after} seconds" : "Rate limit exceeded")
     end
   end
 

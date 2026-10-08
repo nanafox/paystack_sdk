@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- `429` responses now raise `RateLimitError` (previously swallowed as a client error because the `400..499` branch matched first). `retry_after` is read from Paystack's `x-ratelimit-reset` header (nil when absent) instead of the undocumented `Retry-After`.
+
 ## [0.1.0] - 2025-06-26
 
 ### Changed
