@@ -11,6 +11,11 @@
 #   bin/paystack-scaffold Subaccount --destroy   # undo it: remove the files and the Client wiring
 #                                                #   (add --dry-run to preview)
 #
+# What it writes is marked as generated, with a digest of its contents. A file that still matches its
+# own digest (nobody has edited it) is the scaffold's to regenerate or remove, even when committed.
+# Hand-written extras go in lib/paystack_sdk/resources/extensions/<name>.rb, which the generated class
+# includes when it exists.
+#
 # Your work is protected. A file git tracks that the scaffold did not write is never overwritten
 # or removed, even with --force: move or remove it yourself (git rm / git mv) if you mean to. An
 # untracked file you edited needs --force, is copied to tmp/scaffold-backups/ first, and the line
@@ -18,6 +23,7 @@
 #   bin/paystack-scaffold Subaccount --print     # print the class to stdout instead (--print --spec: the specs)
 #   bin/paystack-scaffold --tags                 # the tags you can scaffold
 #   --root DIR                                   # write under DIR instead of the repository (for tests)
+#   --names FILE                                 # method names to use (default: bin/scaffold_names.yml)
 #
 # It follows the conventions in .claude/skills/paystack-api-workflow/SKILL.md:
 # keywords for every parameter (required ones first), snake_case names mapped to the wire names
@@ -28,6 +34,10 @@
 
 require "yaml"
 
+# Ruby's own method names, taken before this script defines any helper of its own: a top-level
+# `def resolve` here would otherwise count as a method every resource inherits.
+RUBY_OWN_METHODS = (Object.instance_methods + Object.private_instance_methods).map(&:to_s).freeze
+
 SPEC_FILE = File.expand_path("../spec/fixtures/paystack_openapi.yaml", __dir__)
 EXCEPTIONS_FILE = File.expand_path("../spec/support/paystack_contract_exceptions.yml", __dir__)
 VERBS = %w[get post put delete patch].freeze
@@ -36,6 +46,14 @@ RESERVED = %w[
   rescue retry return self super then true undef unless until when while yield
 ].freeze
 GENERIC_PREPOSITIONS = %w[to from a the for of with in on].freeze
+DEFAULT_NAMES_FILE = File.expand_path("scaffold_names.yml", __dir__)
+# Names a resource cannot take: its own helpers and the base class's (Ruby's own are checked separately).
+BASE_METHODS = %w[
+  handle_response escape_path compact_params to_wire format_datetime format_date stringify_json
+  initialize_connection create_connection validate_hash! validate_required_params! validate_presence!
+  validate_positive_integer! validate_reference_format! validate_date_format! validate_allowed_values!
+  validate_email! validate_currency! validate_fields!
+].freeze
 
 def flag?(name)
   !ARGV.delete(name).nil?
@@ -54,8 +72,11 @@ destroy = flag?("--destroy")
 print_only = flag?("--print")
 spec_mode = flag?("--spec")
 root = File.expand_path(option("--root") || File.expand_path("..", __dir__))
+names_file = option("--names") || DEFAULT_NAMES_FILE
 @spec = YAML.safe_load_file(SPEC_FILE, aliases: true)
 @exceptions = YAML.safe_load_file(EXCEPTIONS_FILE)
+@names = YAML.safe_load_file(names_file) || {}
+@root = root
 
 def resolve(node)
   while node.is_a?(Hash) && node["$ref"]
@@ -176,11 +197,14 @@ def parameters_for(entry)
 end
 
 def sample_value(param)
-  sample_for(param.info[:schema], param.keyword)
+  sample_for(param.info[:schema], param.wire || param.keyword)
 end
 
 def sample_for(schema, name, depth = 0)
   schema = resolve(schema || {})
+  # values that pass the checks the SDK makes on emails and references
+  return "ama@example.com" if name.to_s == "email" && schema["type"] == "string"
+  return "sample-reference" if name.to_s == "reference" && schema["type"] == "string"
   return schema["example"] unless schema["example"].nil?
   return schema["enum"].first if schema["enum"]
 
@@ -218,10 +242,31 @@ end
 
 # --- class
 
+# The checks this SDK has always made on values it can recognise by name: the shape of an email, a
+# positive amount and page number, and the characters Paystack allows in a reference you send.
+def convention_checks(p)
+  return [] if p.location == :path
+
+  checks = []
+  if p.wire == "email" && p.info[:type] == "string"
+    allow = p.required ? "" : ", allow_nil: true"
+    checks << %(validate_email!(email: #{p.keyword}, name: "email"#{allow}))
+  end
+  if p.info[:type] == "integer" && %w[amount page perPage per_page].include?(p.wire)
+    checks << %(validate_positive_integer!(value: #{p.keyword}, name: "#{p.wire}"))
+  end
+  if p.wire == "reference" && p.info[:type] == "string"
+    suffix = p.required ? "" : " unless #{p.keyword}.nil?"
+    checks << %(validate_reference_format!(reference: #{p.keyword}, name: "reference")#{suffix})
+  end
+  checks
+end
+
 def validation_lines(params)
   params.flat_map do |p|
     lines = []
     lines << %(validate_presence!(value: #{p.keyword}, name: "#{p.wire}")) if p.required
+    lines.concat(convention_checks(p))
     lines << enum_check(p) if p.info[:enum]
     lines
   end
@@ -372,13 +417,64 @@ def wire_names(entries)
   entries.flat_map { |e| parameters_for(e) }.select { |p| p.location != :path && !p.wire.nil? && p.keyword != p.wire }.to_h { |p| [p.keyword, p.wire] }
 end
 
+def shadows_ruby?(name)
+  RUBY_OWN_METHODS.include?(name) || BASE_METHODS.include?(name)
+end
+
 def unique_names(entries, tag)
   seen = Hash.new(0)
   entries.map do |entry|
-    base = method_name(entry[:op]["summary"], tag)
+    key = "#{entry[:verb].upcase} #{entry[:path]}"
+    chosen = @names[key]
+    base = chosen || method_name(entry[:op]["summary"], tag)
+    if shadows_ruby?(base)
+      abort "#{key} would be named `#{base}`, which shadows a method Ruby or the resource base class " \
+        "already has. Give it another name in bin/scaffold_names.yml (e.g. \"#{key}\": other_name)."
+    end
     seen[base] += 1
+    abort "#{key}: the name `#{base}` is already used by another operation in #{tag}." if chosen && seen[base] > 1
     (seen[base] > 1) ? "#{base}_#{seen[base]}" : base
   end
+end
+
+require "digest"
+
+DIGEST_LINE = /^# scaffold-digest: ([0-9a-f]{64})\n/
+DIGEST_PLACEHOLDER = "# scaffold-digest: pending\n"
+
+def spec_commit
+  source = File.expand_path("../spec/fixtures/paystack_openapi.source.yml", __dir__)
+  File.exist?(source) ? YAML.safe_load_file(source)["commit"].to_s[0, 7] : "unknown"
+end
+
+# The comment block every generated file starts with, ending in the placeholder that sign() fills in.
+def generated_header(tag, what, file)
+  extras = (what == :class) ? " Hand-written extras go in lib/paystack_sdk/resources/extensions/#{file}.rb." : ""
+  [
+    "# Generated by bin/paystack-scaffold from Paystack's OpenAPI spec (PaystackOSS/openapi@#{spec_commit}).",
+    "# Do not edit by hand: regenerate it with `bin/paystack-scaffold #{tag}`.#{extras}",
+    DIGEST_PLACEHOLDER.chomp,
+    ""
+  ]
+end
+
+# Fills in the digest of everything else in the file, so an edit can be told from the scaffold's own text.
+def sign(content)
+  digest = Digest::SHA256.hexdigest(content.sub(DIGEST_PLACEHOLDER, ""))
+  content.sub(DIGEST_PLACEHOLDER, "# scaffold-digest: #{digest}\n")
+end
+
+# True for a file the scaffold wrote and nobody has edited since.
+def generated_untouched?(path)
+  return false unless File.file?(path)
+
+  content = File.read(path)
+  match = content.match(DIGEST_LINE)
+  !match.nil? && Digest::SHA256.hexdigest(content.sub(DIGEST_LINE, "")) == match[1]
+end
+
+def extension_file?(file)
+  File.exist?(File.join(@root, "lib/paystack_sdk/resources/extensions/#{file}.rb"))
 end
 
 def render_class(tag)
@@ -388,14 +484,20 @@ def render_class(tag)
   names = unique_names(entries, tag)
   mapping = wire_names(entries)
   out = []
+  file = snake(class_name(tag))
+  extended = extension_file?(file)
   out << "# frozen_string_literal: true"
   out << ""
+  out.concat(generated_header(tag, :class, file))
   out << 'require_relative "base"'
+  out << %(require_relative "extensions/#{file}") if extended
   out << ""
   out << "module PaystackSdk"
   out << "  module Resources"
-  out << "    # #{tag} operations (generated by bin/paystack-scaffold from the pinned OpenAPI spec; review against the docs)."
+  out << "    # #{tag} operations."
   out << "    class #{class_name(tag)} < PaystackSdk::Resources::Base"
+  out << "      include Extensions::#{class_name(tag)}" if extended
+  out << "" if extended
   out << "      # Ruby keyword => the parameter name Paystack documents."
   out << "      WIRE_NAMES = {#{mapping.map { |k, v| "#{k}: #{v.inspect}" }.join(", ")}}.freeze"
   out << ""
@@ -403,7 +505,7 @@ def render_class(tag)
   out << "    end"
   out << "  end"
   out << "end"
-  out.join("\n") + "\n"
+  sign(out.join("\n") + "\n")
 end
 
 # --- specs
@@ -430,6 +532,7 @@ def render_spec(tag)
   out = []
   out << "# frozen_string_literal: true"
   out << ""
+  out.concat(generated_header(tag, :spec, snake(class_name(tag))))
   out << "# Wire-shape specs: each sends a real request through the resource."
   out << "# spec/support/paystack_contract.rb checks every request against Paystack's OpenAPI spec,"
   out << "# so these also prove the request conforms."
@@ -473,7 +576,7 @@ def render_spec(tag)
     out << "  end"
   end
   out << "end"
-  out.join("\n") + "\n"
+  sign(out.join("\n") + "\n")
 end
 
 # --- writing files, Rails style
@@ -512,7 +615,7 @@ def protected_report(root, path, verb)
   :conflict
 end
 
-# create / identical / force / conflict / protected, as Rails generators say it.
+# create / identical / update / force / conflict / protected, as Rails generators say it.
 def write_file(root, path, content, dry_run:, force:)
   shown = relative(root, path)
   if !File.exist?(path)
@@ -520,6 +623,9 @@ def write_file(root, path, content, dry_run:, force:)
     write(path, content) unless dry_run
   elsif File.read(path) == content
     report("identical", shown)
+  elsif generated_untouched?(path)
+    report("update", shown)
+    write(path, content) unless dry_run
   elsif tracked?(root, path)
     return protected_report(root, path, "overwritten")
   elsif force
@@ -632,7 +738,7 @@ def remove_file(root, path, generated, dry_run:, force:)
   shown = relative(root, path)
   if !File.exist?(path)
     report("skip", shown, "not found")
-  elsif File.read(path) == generated
+  elsif File.read(path) == generated || generated_untouched?(path)
     report("remove", shown)
     File.delete(path) unless dry_run
   elsif tracked?(root, path)

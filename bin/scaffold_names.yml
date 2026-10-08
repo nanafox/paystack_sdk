@@ -1,0 +1,14 @@
+# Method names for operations where Paystack's own name would be a worse Ruby name than the one this
+# SDK has always used, or would clash with Ruby. Keyed by the operation as the spec writes it.
+#
+# Names not listed here come from the operation's summary ("Create Subaccount" becomes `create`).
+# bin/paystack-scaffold refuses a name that would shadow one of Ruby's own methods (`initialize`,
+# `send`, `format`...) and tells you to add the operation here.
+
+# "Initialize Transaction": `initialize` would replace the constructor.
+"POST /transaction/initialize": initiate
+"GET /transaction/totals": totals
+"GET /transaction/timeline/{id}": timeline
+
+# "Initiate Transfer"
+"POST /transfer": create
