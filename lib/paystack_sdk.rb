@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "faraday"
+require "faraday/retry"
 require_relative "paystack_sdk/version"
 require_relative "paystack_sdk/client"
 
@@ -80,6 +81,13 @@ module PaystackSdk
       super(retry_after ? "Rate limit exceeded. Retry after #{retry_after} seconds" : "Rate limit exceeded")
     end
   end
+
+  # Raised when a request could not reach Paystack (DNS, refused, reset, ...)
+  # after all retries were exhausted.
+  class ConnectionError < Error; end
+
+  # Raised when a request to Paystack timed out after all retries were exhausted.
+  class TimeoutError < ConnectionError; end
 
   # Raised when the server returns a 5xx error
   class ServerError < APIError

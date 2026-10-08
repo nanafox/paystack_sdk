@@ -29,8 +29,8 @@ module PaystackSdk
       #
       # @example With default connection (requires PAYSTACK_SECRET_KEY environment variable)
       #   resource = PaystackSdk::Resources::SomeResource.new
-      def initialize(connection = nil, secret_key: nil)
-        @connection = initialize_connection(connection, secret_key: secret_key)
+      def initialize(connection = nil, secret_key: nil, **options)
+        @connection = initialize_connection(connection, secret_key: secret_key, **options)
       end
 
       private
