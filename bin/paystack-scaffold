@@ -1,0 +1,703 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Creates a resource class, its wire-shape specs, and its place on the Client, from Paystack's
+# OpenAPI spec, and says what it did, Rails style.
+#
+#   bin/paystack-scaffold Subaccount             # create the class, the specs and the Client wiring
+#   bin/paystack-scaffold Subaccount --dry-run   # say what would be done; write nothing
+#   bin/paystack-scaffold Subaccount --force     # overwrite untracked files that exist and differ (backed up first)
+#   bin/paystack-scaffold Subaccount --skip-spec # leave the specs out
+#   bin/paystack-scaffold Subaccount --destroy   # undo it: remove the files and the Client wiring
+#                                                #   (add --dry-run to preview)
+#
+# Your work is protected. A file git tracks that the scaffold did not write is never overwritten
+# or removed, even with --force: move or remove it yourself (git rm / git mv) if you mean to. An
+# untracked file you edited needs --force, is copied to tmp/scaffold-backups/ first, and the line
+# says how many lines it replaced or removed.
+#   bin/paystack-scaffold Subaccount --print     # print the class to stdout instead (--print --spec: the specs)
+#   bin/paystack-scaffold --tags                 # the tags you can scaffold
+#   --root DIR                                   # write under DIR instead of the repository (for tests)
+#
+# It follows the conventions in .claude/skills/paystack-api-workflow/SKILL.md:
+# keywords for every parameter (required ones first), snake_case names mapped to the wire names
+# Paystack documents, enums validated, dates formatted, and a @see link per method.
+#
+# What it writes is a draft to read against the docs, not finished code. Check method names, wording,
+# and anything the spec does not say. Read the docs page for each operation before keeping it.
+
+require "yaml"
+
+SPEC_FILE = File.expand_path("../spec/fixtures/paystack_openapi.yaml", __dir__)
+EXCEPTIONS_FILE = File.expand_path("../spec/support/paystack_contract_exceptions.yml", __dir__)
+VERBS = %w[get post put delete patch].freeze
+RESERVED = %w[
+  alias and begin break case class def defined? do else elsif end ensure false for if in module next nil not or redo
+  rescue retry return self super then true undef unless until when while yield
+].freeze
+GENERIC_PREPOSITIONS = %w[to from a the for of with in on].freeze
+
+def flag?(name)
+  !ARGV.delete(name).nil?
+end
+
+def option(name)
+  index = ARGV.index(name) or return nil
+  ARGV.delete_at(index)
+  ARGV.delete_at(index) or abort "#{name} needs a value"
+end
+
+dry_run = flag?("--dry-run")
+force = flag?("--force")
+skip_spec = flag?("--skip-spec")
+destroy = flag?("--destroy")
+print_only = flag?("--print")
+spec_mode = flag?("--spec")
+root = File.expand_path(option("--root") || File.expand_path("..", __dir__))
+@spec = YAML.safe_load_file(SPEC_FILE, aliases: true)
+@exceptions = YAML.safe_load_file(EXCEPTIONS_FILE)
+
+def resolve(node)
+  while node.is_a?(Hash) && node["$ref"]
+    node = node["$ref"].delete_prefix("#/").split("/").reduce(@spec) { |cur, part| cur.fetch(part.gsub("~1", "/").gsub("~0", "~")) }
+  end
+  node
+end
+
+def flatten(schema)
+  schema = resolve(schema)
+  return {"required" => [], "properties" => {}} unless schema.is_a?(Hash)
+
+  parts = (schema["allOf"] || []).map { |part| flatten(part) }
+  parts << {"required" => schema["required"] || [], "properties" => schema["properties"] || {}}
+  {"required" => parts.flat_map { |p| p["required"] }.uniq, "properties" => parts.reduce({}) { |acc, p| acc.merge(p["properties"]) }}
+end
+
+def operations_for(tag)
+  @spec["paths"].flat_map do |path, item|
+    VERBS.filter_map do |verb|
+      op = item[verb]
+      next unless op && op["tags"]&.first&.casecmp?(tag)
+      {verb: verb, path: path, op: op, path_params: ((item["parameters"] || []) + (op["parameters"] || [])).map { |p| resolve(p) }}
+    end
+  end
+end
+
+# --- names
+
+def snake(name)
+  name.to_s.gsub(/([a-z\d])([A-Z])/, '\1_\2').gsub(/[^A-Za-z0-9]+/, "_").downcase.gsub(/\A_+|_+\z/, "")
+end
+
+def ruby_word(name)
+  if RESERVED.include?(name)
+    (name == "next") ? "next_cursor" : "#{name}_value"
+  else
+    name
+  end
+end
+
+def tag_nouns(tag)
+  words = tag.downcase.split
+  words + words.map { |w| w.end_with?("s") ? w.chomp("s") : "#{w}s" }
+end
+
+def method_name(summary, tag)
+  words = summary.downcase.gsub(/[^a-z0-9 ]/, " ").split
+  nouns = tag_nouns(tag)
+  kept = words.reject.with_index { |w, i| i.positive? && nouns.include?(w) }
+  kept.pop while kept.size > 1 && GENERIC_PREPOSITIONS.include?(kept.last)
+  snake(kept.join("_"))
+end
+
+def class_name(tag)
+  base = tag.split.map(&:capitalize).join
+  base.end_with?("s") ? base : "#{base}s"
+end
+
+# --- parameters
+
+# The docs-confirmed differences recorded for the contract checker, so the scaffold sends the same names.
+def exception_for(op_key, location, spec_name)
+  @exceptions.find { |e| e["operation"] == op_key && e["in"] == location && e["spec"] == spec_name }
+end
+
+def describe_schema(schema)
+  schema = resolve(schema || {})
+  {type: schema["type"], format: schema["format"], enum: schema["enum"], example: schema["example"], schema: schema}
+end
+
+def ruby_type(info)
+  {"string" => "String", "integer" => "Integer", "number" => "Numeric", "boolean" => "Boolean", "array" => "Array", "object" => "Hash"}.fetch(info[:type].to_s, "Object")
+end
+
+def one_line(text)
+  text.to_s.strip.gsub(/\s+/, " ").split(/(?<=[.!?])\s/).first.to_s
+end
+
+Param = Struct.new(:keyword, :wire, :required, :info, :description, :location, keyword_init: true)
+
+def parameters_for(entry)
+  op_key = "#{entry[:verb].upcase} #{entry[:path]}"
+  params = []
+
+  entry[:path_params].select { |p| p["in"] == "path" }.each do |p|
+    params << Param.new(keyword: ruby_word(snake(p["name"])), wire: p["name"], required: true, info: describe_schema(p["schema"]), description: one_line(p["description"]), location: :path)
+  end
+
+  entry[:path_params].select { |p| p["in"] == "query" }.each do |p|
+    exc = exception_for(op_key, "query", p["name"])
+    wire = exc ? exc["wire"] : p["name"]
+    keyword = exc ? (exc["ruby"] || snake(wire)) : snake(wire)
+    info = describe_schema(p["schema"])
+    info[:type] = exc["type"] if exc && exc["type"]
+    params << Param.new(keyword: ruby_word(keyword), wire: wire, required: !!p["required"], info: info, description: one_line(p["description"]), location: :query)
+  end
+
+  body = resolve(entry[:op]["requestBody"] || {}).dig("content", "application/json", "schema")
+  if body && resolve(body)["type"] == "array"
+    # a JSON array body (bulk charge): one keyword, sent as given. Rename it to suit the operation.
+    params << Param.new(keyword: "items", wire: nil, required: true, info: describe_schema(body), description: "The array Paystack expects as the request body", location: :array_body)
+  elsif body
+    flat = flatten(body)
+    flat["properties"].each do |name, prop|
+      prop = resolve(prop)
+      params << Param.new(keyword: ruby_word(snake(name)), wire: name, required: flat["required"].include?(name), info: describe_schema(prop), description: one_line(prop["description"]), location: :body)
+    end
+  end
+
+  params.sort_by.with_index { |p, i|
+    [if p.location == :path
+       0
+     else
+       (p.required ? 1 : 2)
+     end, i]
+  }
+end
+
+def sample_value(param)
+  sample_for(param.info[:schema], param.keyword)
+end
+
+def sample_for(schema, name, depth = 0)
+  schema = resolve(schema || {})
+  return schema["example"] unless schema["example"].nil?
+  return schema["enum"].first if schema["enum"]
+
+  props = (schema["allOf"] || schema["properties"]) ? flatten(schema) : nil
+  if schema["type"] == "object" || (props && !props["properties"].empty?)
+    return {} if depth > 2 || props.nil?
+
+    chosen = props["properties"].slice(*props["required"])
+    chosen = props["properties"].first(2).to_h if chosen.empty?
+    return chosen.to_h { |k, v| [k, sample_for(v, k, depth + 1)] }
+  end
+
+  case schema["type"]
+  when "integer" then 1
+  when "number" then 1.5
+  when "boolean" then true
+  when "array" then (depth > 2) ? [] : [sample_for(schema["items"], name, depth + 1)]
+  else
+    if schema["format"] == "date"
+      "2026-01-31"
+    else
+      ((schema["format"] == "date-time") ? "2026-01-31T09:00:00Z" : "sample_#{name}")
+    end
+  end
+end
+
+# A Ruby literal in StandardRB's style: `{"a" => 1}`, not `{"a"=>1}`.
+def literal(value)
+  case value
+  when Hash then value.empty? ? "{}" : "{#{value.map { |k, v| "#{literal(k)} => #{literal(v)}" }.join(", ")}}"
+  when Array then "[#{value.map { |v| literal(v) }.join(", ")}]"
+  else value.inspect
+  end
+end
+
+# --- class
+
+def validation_lines(params)
+  params.flat_map do |p|
+    lines = []
+    lines << %(validate_presence!(value: #{p.keyword}, name: "#{p.wire}")) if p.required
+    lines << enum_check(p) if p.info[:enum]
+    lines
+  end
+end
+
+# One line when it fits, otherwise one argument per line.
+def enum_check(p)
+  values = "%w[#{p.info[:enum].join(" ")}]"
+  one_line = %(validate_allowed_values!(value: #{p.keyword}, allowed_values: #{values}, name: "#{p.wire}"))
+  return one_line if one_line.size + 8 <= WIDTH
+
+  [
+    "validate_allowed_values!(",
+    "  value: #{p.keyword},",
+    "  allowed_values: #{values},",
+    %(  name: "#{p.wire}"),
+    ")"
+  ].join("\n")
+end
+
+def value_expression(p)
+  return "format_datetime(#{p.keyword}, name: \"#{p.wire}\")" if p.info[:format] == "date-time"
+  return "format_date(#{p.keyword}, name: \"#{p.wire}\")" if p.info[:format] == "date"
+  return "stringify_json(#{p.keyword})" if p.info[:type] == "string" && p.wire.match?(/metadata/i)
+
+  p.keyword.to_s
+end
+
+WIDTH = 100
+
+def keyword_list(params)
+  params.map { |p| p.required ? "#{p.keyword}:" : "#{p.keyword}: nil" }
+end
+
+# `def name(a:, b: nil)` on one line when it fits, otherwise one keyword per line.
+def definition(name, params, indent)
+  pad = " " * indent
+  list = keyword_list(params)
+  return ["#{pad}def #{name}"] if list.empty?
+
+  one_line = "#{pad}def #{name}(#{list.join(", ")})"
+  return [one_line] if one_line.size <= WIDTH
+
+  ["#{pad}def #{name}("] + list.each_with_index.map { |kw, i| "#{pad}  #{kw}#{"," unless i == list.size - 1}" } + ["#{pad})"]
+end
+
+def url_for(entry, params)
+  path = entry[:path].dup
+  params.select { |p| p.location == :path }.each { |p| path.sub!("{#{p.wire}}", "\#{escape_path(#{p.keyword})}") }
+  %("#{path}")
+end
+
+# `key:` when the value is the keyword itself, otherwise `key: expression`.
+def hash_pairs(list)
+  list.map { |p| (value_expression(p) == p.keyword.to_s) ? "#{p.keyword}:" : "#{p.keyword}: #{value_expression(p)}" }
+end
+
+# Lines that build the wire hash into a local, tidy when long. Returns [lines, variable_name].
+def wire_assignment(var, list, indent)
+  pad = " " * indent
+  pairs = hash_pairs(list)
+  inline = "#{pad}#{var} = to_wire({#{pairs.join(", ")}}, WIRE_NAMES)"
+  return [[inline], var] if inline.size <= WIDTH
+
+  lines = ["#{pad}#{var} = to_wire("]
+  lines << "#{pad}  {"
+  pairs.each_with_index { |pair, i| lines << "#{pad}    #{pair}#{"," unless i == pairs.size - 1}" }
+  lines << "#{pad}  },"
+  lines << "#{pad}  WIRE_NAMES"
+  lines << "#{pad})"
+  [lines, var]
+end
+
+# Returns [setup_lines, call_expression] for the request, at the given indent.
+def connection_call(entry, params, indent)
+  verb = entry[:verb]
+  url = url_for(entry, params)
+  sent = params.reject { |p| p.location == :path }
+  query = sent.select { |p| p.location == :query }
+  body = sent.select { |p| p.location == :body }
+  array = sent.find { |p| p.location == :array_body }
+  setup = []
+
+  query_var = nil
+  unless query.empty?
+    lines, query_var = wire_assignment("wire_query", query, indent)
+    setup.concat(lines)
+  end
+  body_var = nil
+  unless body.empty?
+    lines, body_var = wire_assignment("wire_body", body, indent)
+    setup.concat(lines)
+  end
+
+  call =
+    if array
+      "@connection.#{verb}(#{url}, #{array.keyword})"
+    elsif body_var.nil?
+      query_var ? "@connection.#{verb}(#{url}, #{query_var})" : "@connection.#{verb}(#{url})"
+    elsif %w[post put patch].include?(verb)
+      base = "@connection.#{verb}(#{url}, #{body_var})"
+      query_var ? "#{base} { |request| request.params.update(#{query_var}) }" : base
+    else
+      first = query_var ? ", #{query_var}" : ""
+      "@connection.#{verb}(#{url}#{first}) { |request| request.body = #{body_var} }"
+    end
+  [setup, call]
+end
+
+def render_method(entry, tag, name)
+  params = parameters_for(entry)
+  op = entry[:op]
+  anchor = op["summary"].to_s.downcase.gsub(/[^a-z0-9]+/, "-").gsub(/\A-|-\z/, "")
+
+  out = []
+  out << "      # #{op["summary"]}."
+  out << "      #" << "      # #{one_line(op["description"])}" unless op["description"].to_s.strip.empty?
+  out << "      #"
+  params.each do |p|
+    detail = p.description.empty? ? "" : " #{p.description}"
+    detail += " One of: #{p.info[:enum].join(", ")}." if p.info[:enum]
+    out << "      # @param #{p.keyword} [#{ruby_type(p.info)}]#{detail}"
+  end
+  out << "      # @return [PaystackSdk::Response] The response from the Paystack API."
+  out << "      # @raise [PaystackSdk::Error] If a parameter is invalid or the API request fails."
+  out << "      # @see https://paystack.com/docs/api/#{snake(tag).tr("_", "-")}/##{anchor}"
+  out.concat(definition(name, params, 6))
+  validations = validation_lines(params)
+  validations.flat_map { |line| line.split("\n") }.each { |line| out << "        #{line}" }
+  out << "" unless validations.empty?
+
+  setup, call = connection_call(entry, params, 8)
+  out.concat(setup)
+  out << "" unless setup.empty?
+  statement = "        handle_response(#{call})"
+  if statement.size <= WIDTH
+    out << statement
+  else
+    out << "        handle_response("
+    out << "          #{call}"
+    out << "        )"
+  end
+  out << "      end"
+  out.join("\n")
+end
+
+def wire_names(entries)
+  entries.flat_map { |e| parameters_for(e) }.select { |p| p.location != :path && !p.wire.nil? && p.keyword != p.wire }.to_h { |p| [p.keyword, p.wire] }
+end
+
+def unique_names(entries, tag)
+  seen = Hash.new(0)
+  entries.map do |entry|
+    base = method_name(entry[:op]["summary"], tag)
+    seen[base] += 1
+    (seen[base] > 1) ? "#{base}_#{seen[base]}" : base
+  end
+end
+
+def render_class(tag)
+  entries = operations_for(tag)
+  abort "No operations tagged #{tag.inspect}. Try: bin/paystack-scaffold --tags" if entries.empty?
+
+  names = unique_names(entries, tag)
+  mapping = wire_names(entries)
+  out = []
+  out << "# frozen_string_literal: true"
+  out << ""
+  out << 'require_relative "base"'
+  out << ""
+  out << "module PaystackSdk"
+  out << "  module Resources"
+  out << "    # #{tag} operations (generated by bin/paystack-scaffold from the pinned OpenAPI spec; review against the docs)."
+  out << "    class #{class_name(tag)} < PaystackSdk::Resources::Base"
+  out << "      # Ruby keyword => the parameter name Paystack documents."
+  out << "      WIRE_NAMES = {#{mapping.map { |k, v| "#{k}: #{v.inspect}" }.join(", ")}}.freeze"
+  out << ""
+  out << entries.zip(names).map { |entry, name| render_method(entry, tag, name) }.join("\n\n")
+  out << "    end"
+  out << "  end"
+  out << "end"
+  out.join("\n") + "\n"
+end
+
+# --- specs
+
+# `resource.name(a: 1, b: 2)` on one line when it fits, otherwise one keyword per line.
+def call_lines(receiver, name, args, indent, assign: nil)
+  pad = " " * indent
+  prefix = assign ? "#{assign} = " : ""
+  return ["#{pad}#{prefix}#{receiver}.#{name}"] if args.empty?
+
+  one_line = "#{pad}#{prefix}#{receiver}.#{name}(#{args.join(", ")})"
+  return [one_line] if one_line.size <= WIDTH
+
+  ["#{pad}#{prefix}#{receiver}.#{name}("] +
+    args.each_with_index.map { |arg, i| "#{pad}  #{arg}#{"," unless i == args.size - 1}" } +
+    ["#{pad})"]
+end
+
+def render_spec(tag)
+  entries = operations_for(tag)
+  abort "No operations tagged #{tag.inspect}. Try: bin/paystack-scaffold --tags" if entries.empty?
+
+  names = unique_names(entries, tag)
+  out = []
+  out << "# frozen_string_literal: true"
+  out << ""
+  out << "# Wire-shape specs: each sends a real request through the resource."
+  out << "# spec/support/paystack_contract.rb checks every request against Paystack's OpenAPI spec,"
+  out << "# so these also prove the request conforms."
+  out << "RSpec.describe PaystackSdk::Resources::#{class_name(tag)} do"
+  out << '  let(:resource) { described_class.new(secret_key: "sk_test_x", max_retries: 0) }'
+  out << "  let(:ok) do"
+  out << "    {"
+  out << "      status: 200,"
+  out << '      headers: {"Content-Type" => "application/json"},'
+  out << '      body: {status: true, message: "ok", data: {}}.to_json'
+  out << "    }"
+  out << "  end"
+  entries.zip(names).each do |entry, name|
+    params = parameters_for(entry)
+    required = params.select(&:required)
+    path = entry[:path].dup
+    required.select { |p| p.location == :path }.each { |p| path.sub!("{#{p.wire}}", sample_value(p).to_s) }
+    args = required.map { |p| "#{p.keyword}: #{literal(sample_value(p))}" }
+    query = required.select { |p| p.location == :query }
+    out << ""
+    out << %(  describe "##{name}" do)
+    out << "    it \"sends #{entry[:verb].upcase} #{entry[:path]} as Paystack documents it\" do"
+    out << %(      stub = stub_request(:#{entry[:verb]}, "https://api.paystack.co#{path}"))
+    out << "        .with(query: {#{query.map { |p| "#{p.wire.inspect} => #{sample_value(p).to_s.inspect}" }.join(", ")}})" unless query.empty?
+    out << "        .to_return(ok)"
+    out << ""
+    out.concat(call_lines("resource", name, args, 6, assign: "response"))
+    out << ""
+    out << "      expect(response).to be_success"
+    out << "      expect(stub).to have_been_requested"
+    out << "    end"
+    required.reject { |p| p.location == :path }.first(1).each do |p|
+      rest = required.reject { |q| q.equal?(p) }.map { |q| "#{q.keyword}: #{literal(sample_value(q))}" }
+      out << ""
+      out << "    it \"requires #{p.keyword}\" do"
+      out << "      expect do"
+      out.concat(call_lines("resource", name, rest, 8))
+      out << "      end.to raise_error(ArgumentError, /#{p.keyword}/)"
+      out << "    end"
+    end
+    out << "  end"
+  end
+  out << "end"
+  out.join("\n") + "\n"
+end
+
+# --- writing files, Rails style
+
+def report(label, path, note = nil)
+  puts format("%12s  %s%s", label, path, note ? "  (#{note})" : "")
+end
+
+def relative(root, path)
+  path.delete_prefix("#{root}/")
+end
+
+BACKUP_STAMP = Time.now.strftime("%Y%m%d-%H%M%S")
+
+# Whether git tracks the file. False when there is no git repository.
+def tracked?(root, path)
+  system("git", "-C", root, "ls-files", "--error-unmatch", "--", relative(root, path), out: File::NULL, err: File::NULL)
+end
+
+def backup_dir(root)
+  File.join("tmp", "scaffold-backups", BACKUP_STAMP)
+end
+
+def backup_file(root, path)
+  destination = File.join(root, backup_dir(root), relative(root, path))
+  FileUtils.mkdir_p(File.dirname(destination))
+  FileUtils.cp(path, destination)
+end
+
+def protected_report(root, path, verb)
+  report(
+    "protected", relative(root, path),
+    "tracked by git and not written by the scaffold; it will not be #{verb}. " \
+    "Move or remove it yourself (git rm / git mv) if you mean to replace it"
+  )
+  :conflict
+end
+
+# create / identical / force / conflict / protected, as Rails generators say it.
+def write_file(root, path, content, dry_run:, force:)
+  shown = relative(root, path)
+  if !File.exist?(path)
+    report("create", shown)
+    write(path, content) unless dry_run
+  elsif File.read(path) == content
+    report("identical", shown)
+  elsif tracked?(root, path)
+    return protected_report(root, path, "overwritten")
+  elsif force
+    lines = File.read(path).lines.size
+    report("force", shown, "#{lines} lines replaced; #{dry_run ? "would back up to" : "backup"} #{backup_dir(root)}/")
+    unless dry_run
+      backup_file(root, path)
+      write(path, content)
+    end
+  else
+    report("conflict", shown, "exists and differs; --force overwrites it, after backing it up")
+    return :conflict
+  end
+  :ok
+end
+
+def write(path, content)
+  FileUtils.mkdir_p(File.dirname(path))
+  File.write(path, content)
+end
+
+# The accessor Client gets for a resource, indented for the class body.
+def client_accessor(file, klass)
+  <<~RUBY.gsub(/^(?=.)/, "    ")
+
+    # Provides access to the `#{klass}` resource.
+    #
+    # @return [PaystackSdk::Resources::#{klass}] An instance of the
+    #  `#{klass}` resource.
+    def #{file}
+      @#{file} ||= Resources::#{klass}.new(@connection)
+    end
+  RUBY
+end
+
+# Registers the resource on Client: its require, and an accessor like `client.refunds`.
+def wire_client(root, tag, dry_run:)
+  path = File.join(root, "lib/paystack_sdk/client.rb")
+  shown = relative(root, path)
+  return report("skip", shown, "not found") unless File.exist?(path)
+
+  file = snake(class_name(tag))
+  klass = class_name(tag)
+  source = File.read(path)
+  changed = false
+
+  require_line = %(require_relative "resources/#{file}")
+  if source.include?(require_line)
+    report("identical", shown, "require resources/#{file}")
+  else
+    last = source.scan(/^require_relative "resources\/[^"]+"\n/).last
+    abort "Could not find where Client requires its resources in #{shown}" unless last
+    source = source.sub(last, "#{last}#{require_line}\n")
+    report("insert", shown, "require resources/#{file}")
+    changed = true
+  end
+
+  if source.match?(/^\s+def #{file}\b/)
+    report("identical", shown, "client.#{file}")
+  else
+    source = source.sub(/\n  end\nend\n\z/, "\n#{client_accessor(file, klass)}  end\nend\n")
+    report("insert", shown, "client.#{file}")
+    changed = true
+  end
+
+  File.write(path, source) if changed && !dry_run
+end
+
+# Takes the resource off Client again. It only removes the accessor it would have written itself:
+# one that was edited, or written by hand, is left alone, and so is its require (removing the require
+# while the accessor stays would break Client).
+def unwire_client(root, tag, dry_run:)
+  path = File.join(root, "lib/paystack_sdk/client.rb")
+  shown = relative(root, path)
+  return report("skip", shown, "not found") unless File.exist?(path)
+
+  file = snake(class_name(tag))
+  klass = class_name(tag)
+  source = File.read(path)
+  accessor = client_accessor(file, klass)
+
+  if !source.include?(accessor) && source.match?(/^\s+def #{file}\b/)
+    return report("conflict", shown, "client.#{file} is not the generated one; remove it, and its require, by hand")
+  end
+
+  changed = false
+  require_line = %(require_relative "resources/#{file}"\n)
+  if source.include?(require_line)
+    source = source.sub(require_line, "")
+    report("remove", shown, "require resources/#{file}")
+    changed = true
+  else
+    report("skip", shown, "no require for resources/#{file}")
+  end
+
+  if source.include?(accessor)
+    source = source.sub(accessor, "")
+    report("remove", shown, "client.#{file}")
+    changed = true
+  else
+    report("skip", shown, "no client.#{file}")
+  end
+
+  File.write(path, source) if changed && !dry_run
+end
+
+# remove / skip / conflict / force / protected: never deletes a file that is not what the scaffold
+# would write, and never one that git tracks.
+def remove_file(root, path, generated, dry_run:, force:)
+  shown = relative(root, path)
+  if !File.exist?(path)
+    report("skip", shown, "not found")
+  elsif File.read(path) == generated
+    report("remove", shown)
+    File.delete(path) unless dry_run
+  elsif tracked?(root, path)
+    return protected_report(root, path, "removed")
+  elsif force
+    lines = File.read(path).lines.size
+    report("force", shown, "#{lines} lines removed; #{dry_run ? "would back up to" : "backup"} #{backup_dir(root)}/")
+    unless dry_run
+      backup_file(root, path)
+      File.delete(path)
+    end
+  else
+    report("conflict", shown, "differs from what the scaffold writes; --force removes it, after backing it up")
+    return :conflict
+  end
+  :ok
+end
+
+if ARGV.include?("--tags")
+  tags = @spec["paths"].flat_map { |_, item| VERBS.filter_map { |v| item[v]&.dig("tags")&.first } }.tally
+  tags.sort.each { |tag, count| puts format("%-28s %2d operations", tag, count) }
+  exit
+end
+
+tag = ARGV.shift or abort "usage: bin/paystack-scaffold Tag [--dry-run] [--force] [--skip-spec] [--print]   (--tags lists them)"
+
+if print_only
+  puts(spec_mode ? render_spec(tag) : render_class(tag))
+  exit
+end
+
+require "fileutils"
+
+file = snake(class_name(tag))
+class_path = File.join(root, "lib/paystack_sdk/resources/#{file}.rb")
+spec_path = File.join(root, "spec/resources/#{file}_spec.rb")
+
+if destroy
+  results = []
+  results << remove_file(root, class_path, render_class(tag), dry_run: dry_run, force: force)
+  results << remove_file(root, spec_path, render_spec(tag), dry_run: dry_run, force: force) unless skip_spec
+  unwire_client(root, tag, dry_run: dry_run) unless results.include?(:conflict)
+
+  puts
+  if dry_run
+    puts "Dry run: nothing was removed."
+  elsif results.include?(:conflict)
+    puts "Left as it was because of the conflict above, and Client was not touched."
+  end
+  exit
+end
+
+results = []
+results << write_file(root, class_path, render_class(tag), dry_run: dry_run, force: force)
+results << write_file(root, spec_path, render_spec(tag), dry_run: dry_run, force: force) unless skip_spec
+wire_client(root, tag, dry_run: dry_run) unless results.include?(:conflict)
+
+puts
+if dry_run
+  puts "Dry run: nothing was written."
+elsif results.include?(:conflict)
+  puts "Left as it was because of the conflict above, and Client was not touched."
+else
+  puts "Next:"
+  puts "  1. Read each operation on its docs page (https://paystack.com/docs/api/) and fix the draft."
+  puts "  2. #{skip_spec ? "" : "bundle exec rspec spec/resources/#{file}_spec.rb && "}bundle exec standardrb"
+  puts "  3. README section, CHANGELOG entry, then bin/paystack-spec audit."
+end
