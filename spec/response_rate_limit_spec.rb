@@ -12,7 +12,7 @@ RSpec.describe PaystackSdk::Response do
     end
 
     it "has a nil retry_after when the header is missing or not numeric" do
-      [{}, {"x-ratelimit-reset" => "soon"}].each do |headers|
+      [{}, {"x-ratelimit-reset" => "soon"}, {"x-ratelimit-reset" => "1e309"}].each do |headers|
         expect { described_class.new(faraday_response(429, headers)) }
           .to raise_error(PaystackSdk::RateLimitError, "Rate limit exceeded") { |e| expect(e.retry_after).to be_nil }
       end
