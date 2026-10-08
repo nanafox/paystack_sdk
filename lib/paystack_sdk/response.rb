@@ -251,10 +251,10 @@ module PaystackSdk
     private
 
     # Seconds until the rate-limit window ends, from Paystack's
-    # `x-ratelimit-reset` header (nil if absent, not numeric or not finite).
+    # `x-ratelimit-reset` header (nil if absent, not numeric, negative or not finite).
     def rate_limit_reset(response)
       seconds = Float(response.headers["x-ratelimit-reset"])
-      seconds.finite? ? seconds.ceil : nil
+      (seconds.finite? && seconds >= 0) ? seconds.ceil : nil
     rescue ArgumentError, TypeError
       nil
     end
