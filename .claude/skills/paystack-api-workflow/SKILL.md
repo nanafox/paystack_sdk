@@ -18,7 +18,7 @@ This gem is an SDK. Its only job is to match the Paystack API. An endpoint built
 | Source | Use for | Notes |
 |---|---|---|
 | https://paystack.com/docs/api/ | Canonical docs: behaviour, flows, errors | Returns 403 to bots. Ask the maintainer to check a page when needed. |
-| https://github.com/PaystackOSS/openapi (`dist/paystack.yaml`) | Paths, methods, required fields, enums | Official, MIT. Read it with `bin/paystack-spec`. May lag the docs. |
+| https://github.com/PaystackOSS/openapi (`dist/paystack.yaml`) | Paths, methods, required fields, enums | Official, MIT. Read it with `bin/paystack-spec`. Pinned in `spec/fixtures/` (refresh deliberately with `bin/paystack-spec update`). It can disagree with the docs on query parameter names. |
 | `https://docs-v2.production.paystack.co/docs/api/<resource>/` and `/llms.txt` | Fetchable copy of the docs | HTML is JS-heavy: strip `<style>`/`<script>` before reading. State in the PR that you used the copy. |
 
 Never treat third-party posts, other SDKs or blog articles as evidence. They can point you to something to check, nothing more.
@@ -44,7 +44,7 @@ Never treat third-party posts, other SDKs or blog articles as evidence. They can
    - Mocks only prove the code does what the spec says. The audit proves the code matches Paystack.
 6. **Run the audit; it must exit 0.**
    ```sh
-   bin/paystack-spec audit    # lists SDK calls with no matching spec operation; exit 1 if any
+   bin/paystack-spec audit    # lists SDK calls with no matching spec operation; exit 1 if any (CI runs it offline)
    bundle exec rspec && bundle exec standardrb
    ```
 7. **Open the PR** with a *Verification* section (see below), a CHANGELOG entry under `[Unreleased]`, and README updates if user-visible.

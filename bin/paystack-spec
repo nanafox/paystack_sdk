@@ -7,9 +7,14 @@
 #   bin/paystack-spec audit                 # coverage + endpoints the SDK calls that the spec lacks
 #   bin/paystack-spec missing [Tag]         # spec operations the SDK does not implement (optionally one tag)
 #   bin/paystack-spec show METHOD /path     # what the spec says about one operation
+#   bin/paystack-spec update                # refresh the pinned spec from upstream and show what changed
+#   bin/paystack-spec info                  # which upstream commit the pinned spec is
+#
+# The spec is pinned in spec/fixtures/paystack_openapi.yaml so every command, and CI,
+# works offline and gives the same answer until the pin is deliberately updated.
 #
 # Options:
-#   --spec PATH   use a local copy of paystack.yaml instead of downloading it
+#   --spec PATH   use another copy of paystack.yaml instead of the pinned one
 #
 # The spec gives paths, methods, required fields and enums. It does NOT replace
 # the prose docs (https://paystack.com/docs/api/) for behaviour such as rate
@@ -28,18 +33,19 @@ HTTP_METHODS = %w[get post put delete patch].freeze
 spec_path = nil
 OptionParser.new { |o| o.on("--spec PATH") { |v| spec_path = v } }.parse!
 
-CACHE = File.join(Dir.tmpdir, "paystack-openapi.yaml")
+PINNED = File.expand_path("../spec/fixtures/paystack_openapi.yaml", __dir__)
+PINNED_SOURCE = File.expand_path("../spec/fixtures/paystack_openapi.source.yml", __dir__)
+SPEC_REPO = "PaystackOSS/openapi"
+SPEC_PATH = "dist/paystack.yaml"
 
 def load_spec(path)
-  unless path
-    path = CACHE
-    unless File.exist?(CACHE) && Time.now - File.mtime(CACHE) < 6 * 3600
-      response = Net::HTTP.get_response(URI(SPEC_URL))
-      abort "Could not download the spec (HTTP #{response.code}). Pass --spec PATH." unless response.is_a?(Net::HTTPSuccess)
-      File.write(CACHE, response.body)
-    end
-  end
-  YAML.safe_load_file(path, aliases: true)
+  YAML.safe_load_file(path || PINNED, aliases: true)
+end
+
+def http_get(url)
+  response = Net::HTTP.get_response(URI(url))
+  abort "GET #{url} failed (HTTP #{response.code})" unless response.is_a?(Net::HTTPSuccess)
+  response.body
 end
 
 def normalize(path)
@@ -142,6 +148,36 @@ when "show"
     params.each { |p| puts format(" %s %-8s %-20s %s", p["required"] ? "*" : " ", p["in"], p["name"], p["description"].to_s.strip.tr("\n", " ")[0, 110]) }
   end
   puts "\nSDK: #{ours[[verb, normalize(path)]] || "not implemented"}"
+when "info"
+  source = YAML.safe_load_file(PINNED_SOURCE)
+  puts "Pinned spec: #{source["repo"]}/#{source["path"]} @ #{source["commit"]} (committed #{source["committed_at"]})"
+  puts "Operations: #{ops.size}"
+when "update"
+  require "json"
+  latest = JSON.parse(http_get("https://api.github.com/repos/#{SPEC_REPO}/commits?path=#{SPEC_PATH}&per_page=1")).first
+  sha = latest.fetch("sha")
+  current = YAML.safe_load_file(PINNED_SOURCE)["commit"]
+  if sha == current
+    puts "Already pinned to the latest upstream commit (#{sha[0, 7]})."
+    exit
+  end
+  body = http_get("https://raw.githubusercontent.com/#{SPEC_REPO}/#{sha}/#{SPEC_PATH}")
+  fresh = YAML.safe_load(body, aliases: true)
+  before = ops.keys
+  after = operations(fresh).keys
+  File.write(PINNED, body)
+  File.write(PINNED_SOURCE, <<~YML)
+    # Where spec/fixtures/paystack_openapi.yaml comes from. Refresh it with: bin/paystack-spec update
+    repo: #{SPEC_REPO}
+    path: #{SPEC_PATH}
+    commit: #{sha}
+    committed_at: "#{latest.dig("commit", "committer", "date")}"
+    license: MIT
+  YML
+  puts "Pinned #{current[0, 7]} -> #{sha[0, 7]}. Operations: #{before.size} -> #{after.size}"
+  (after - before).each { |verb, path| puts "  added   #{verb} #{path}" }
+  (before - after).each { |verb, path| puts "  removed #{verb} #{path}" }
+  puts "Review the diff, then run the specs and bin/paystack-spec audit."
 else
-  abort "usage: bin/paystack-spec audit | missing [Tag] | show METHOD /path   [--spec PATH]"
+  abort "usage: bin/paystack-spec audit | missing [Tag] | show METHOD /path | info | update   [--spec PATH]"
 end

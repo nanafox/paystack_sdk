@@ -1,0 +1,6 @@
+# Where spec/fixtures/paystack_openapi.yaml comes from. Refresh it with: bin/paystack-spec update
+repo: PaystackOSS/openapi
+path: dist/paystack.yaml
+commit: d9d444d0122a9b6a3d03d0f7d84165a002449919
+committed_at: "2026-06-09T12:09:44Z"
+license: MIT

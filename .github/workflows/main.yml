@@ -26,6 +26,22 @@ jobs:
       - name: Run the default task
         run: bundle exec rake
 
+  spec-audit:
+    runs-on: ubuntu-latest
+    name: Paystack spec audit
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Every endpoint the SDK calls exists in Paystack's OpenAPI spec
+        run: bin/paystack-spec audit
+
   lint:
     runs-on: ubuntu-latest
     steps:
