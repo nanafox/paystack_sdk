@@ -79,6 +79,10 @@ module PaystackSdk
         case @status_code
         when 200..299
           @success = true
+        when 429
+          # Rate limiting - raise so callers can back off (the connection
+          # already retries automatically unless max_retries is 0)
+          raise RateLimitError.new(rate_limit_reset(response))
         when 400..499
           # Client errors - return unsuccessful response for user to handle
           @success = false
@@ -86,10 +90,6 @@ module PaystackSdk
 
           # Still raise for authentication issues as these are usually config problems
           raise AuthenticationError.new(@api_message || "Authentication failed") if @status_code == 401
-        when 429
-          # Rate limiting - raise as users need to implement retry logic
-          retry_after = response.headers["Retry-After"]
-          raise RateLimitError.new(retry_after || 30)
         when 500..599
           # Server errors - raise as these indicate Paystack infrastructure issues
           raise ServerError.new(@status_code, @api_message)
@@ -249,6 +249,15 @@ module PaystackSdk
     end
 
     private
+
+    # Seconds until the rate-limit window ends, from Paystack's
+    # `x-ratelimit-reset` header (nil if absent, not numeric, negative or not finite).
+    def rate_limit_reset(response)
+      seconds = Float(response.headers["x-ratelimit-reset"])
+      (seconds.finite? && seconds >= 0) ? seconds.ceil : nil
+    rescue ArgumentError, TypeError
+      nil
+    end
 
     # Extract the identifier from an error response
     # This looks for common patterns in error messages to find resource identifiers
