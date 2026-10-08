@@ -29,7 +29,7 @@ bin/paystack-spec missing Customer
 
 - Style is StandardRB. Run it before committing.
 - Public methods get YARD docs with `@param`, `@return`, `@raise` and a `@see` link to the Paystack docs page.
-- Specs use connection doubles; assert the exact documented path and payload.
+- New specs send real requests through `Client` with WebMock. `spec/support/paystack_contract.rb` checks each one against the pinned OpenAPI spec and fails the example on any mismatch. Known, confirmed docs-vs-spec differences are listed in `spec/support/paystack_contract_exceptions.yml`. Opt out with `contract: false` only with a reason.
 - Retries: reads retry on network errors and 429/502/503/504; writes retry only on 429. Never widen this without verified Paystack behaviour.
 - Update `CHANGELOG.md` under `[Unreleased]` and the README for user-visible changes.
 

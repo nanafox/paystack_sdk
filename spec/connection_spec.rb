@@ -8,7 +8,7 @@ RSpec.describe "HTTP resilience" do
   let(:ok) { {status: 200, headers: json, body: ok_body} }
   let(:unavailable) { {status: 503, headers: json, body: "{}"} }
   let(:rate_limited) { {status: 429, headers: json.merge("x-ratelimit-reset" => "1"), body: "{}"} }
-  let(:payload) { {source: "balance", amount: 5000, recipient: "RCP_1"} }
+  let(:payload) { {source: "balance", amount: 5000, recipient: "RCP_1", reference: "ref-123"} }
 
   def connection_attempts(method, path)
     a_request(method, "#{url}#{path}")
@@ -48,7 +48,8 @@ RSpec.describe "HTTP resilience" do
         .to raise_error(ArgumentError, /timeout, max_retries cannot be used with a pre-built connection/)
     end
 
-    it "leaves a user-supplied connection untouched (no retries, no error wrapping)" do
+    # contract: false because a user-supplied connection here has no Authorization header on purpose
+    it "leaves a user-supplied connection untouched (no retries, no error wrapping)", contract: false do
       custom = Faraday.new(url: url) { |c| c.adapter Faraday.default_adapter }
       stub_request(:get, "#{url}/bank").to_timeout
 
@@ -163,7 +164,7 @@ RSpec.describe "HTTP resilience" do
     it "does not retry a POST on 503, even with a reference" do
       stub_request(:post, "#{url}/transfer").to_return(unavailable)
 
-      expect { client.transfers.create(payload.merge(reference: "ref-123")) }.to raise_error(PaystackSdk::ServerError)
+      expect { client.transfers.create(payload) }.to raise_error(PaystackSdk::ServerError)
       expect(connection_attempts(:post, "/transfer")).to have_been_made.once
     end
 
@@ -183,13 +184,14 @@ RSpec.describe "HTTP resilience" do
 
     it "does not retry PUT or DELETE on 503" do
       stub_request(:put, "#{url}/customer/CUS_1").to_return(unavailable)
-      stub_request(:delete, "#{url}/x").to_return(unavailable)
+      stub_request(:delete, "#{url}/transferrecipient/RCP_1").to_return(unavailable)
 
-      expect { PaystackSdk::Response.new(client.connection.put("/customer/CUS_1", {a: 1})) }
+      expect { PaystackSdk::Response.new(client.connection.put("/customer/CUS_1", {first_name: "Ama"})) }
         .to raise_error(PaystackSdk::ServerError)
-      expect { PaystackSdk::Response.new(client.connection.delete("/x")) }.to raise_error(PaystackSdk::ServerError)
+      expect { PaystackSdk::Response.new(client.connection.delete("/transferrecipient/RCP_1")) }
+        .to raise_error(PaystackSdk::ServerError)
       expect(connection_attempts(:put, "/customer/CUS_1")).to have_been_made.once
-      expect(connection_attempts(:delete, "/x")).to have_been_made.once
+      expect(connection_attempts(:delete, "/transferrecipient/RCP_1")).to have_been_made.once
     end
 
     it "retries writes on 5xx and network errors only with retry_non_idempotent: true" do
