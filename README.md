@@ -28,6 +28,7 @@ The `paystack_sdk` gem provides a simple and intuitive interface for interacting
     - [Accessing the Original Response](#accessing-the-original-response)
     - [Error Handling](#error-handling)
 - [Advanced Usage](#advanced-usage)
+  - [Timeouts and Retries](#timeouts-and-retries)
   - [Environment Variables](#environment-variables)
   - [Direct Resource Instantiation](#direct-resource-instantiation)
 - [Development](#development)
@@ -153,9 +154,9 @@ end
 
 - **Validation errors** - when required parameters are missing or have invalid formats
 - **Authentication errors** (401) - usually configuration issues
-- **Rate limiting** (429) - requires retry logic
+- **Rate limiting** (429) - raised after automatic retries are exhausted, or immediately if Paystack asks for a long wait (see [Timeouts and Retries](#timeouts-and-retries))
 - **Server errors** (5xx) - Paystack infrastructure issues
-- **Network errors** - connection failures
+- **Network errors** - timeouts and connection failures, raised as `PaystackSdk::TimeoutError` / `PaystackSdk::ConnectionError`
 
 All other API errors (resource not found, business logic errors, etc.) are returned as unsuccessful Response objects.
 
@@ -587,9 +588,14 @@ begin
 rescue PaystackSdk::AuthenticationError => e
   puts "Authentication failed: #{e.message}"
 rescue PaystackSdk::RateLimitError => e
-  puts "Rate limit exceeded. Retry after: #{e.retry_after} seconds"
+  # retry_after is nil when Paystack did not send x-ratelimit-reset
+  puts "Rate limit exceeded. Retry after: #{e.retry_after || "unknown"} seconds"
 rescue PaystackSdk::ServerError => e
   puts "Server error: #{e.message}"
+rescue PaystackSdk::TimeoutError, PaystackSdk::ConnectionError => e
+  # For writes (e.g. creating a transfer) the request may still have been processed:
+  # verify by your own reference before retrying
+  puts "Could not complete the request: #{e.message}"
 rescue PaystackSdk::APIError => e
   puts "API error: #{e.message}"
 rescue PaystackSdk::Error => e
@@ -626,6 +632,9 @@ The SDK includes several specific error classes:
   - **`PaystackSdk::ResourceNotFoundError`** - Resource not found (404 errors)
   - **`PaystackSdk::RateLimitError`** - Rate limiting encountered
   - **`PaystackSdk::ServerError`** - Server errors (5xx responses)
+
+- **`PaystackSdk::ConnectionError`** - Could not reach Paystack (DNS, refused connection, TLS) after retries
+  - **`PaystackSdk::TimeoutError`** - The request timed out after retries
 
 ##### Validation Error Examples
 
