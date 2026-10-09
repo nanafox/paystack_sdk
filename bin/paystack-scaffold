@@ -218,6 +218,7 @@ def parameters_for(entry)
       wire = exc ? exc["wire"] : name
       info = describe_schema(prop)
       info[:type] = exc["type"] if exc && exc["type"]
+      info[:enum] = exc["enum"] if exc && exc["enum"]
       description = one_line((exc && exc["description"]) || prop["description"])
       required = flat["required"].include?(name) || !!(exc && exc["required"])
       params << Param.new(keyword: ruby_word((exc && exc["ruby"]) || snake(wire)), wire: wire, required: required, info: info, description: description, location: :body)
@@ -764,11 +765,11 @@ def wire_client(root, tag, dry_run:)
     report("identical", shown, "client.#{file}")
   else
     accessor = client_accessor(file, klass)
-    # Public accessors go above Client's `private` section, not after it
+    # resource accessors are public: keep them above `private` when Client has private helpers
     source = if source.include?("\n    private\n")
-      source.sub("\n    private\n", "#{accessor}\n    private\n")
+      source.sub("\n    private\n") { "#{accessor}\n    private\n" }
     else
-      source.sub(/\n  end\nend\n\z/, "\n#{accessor}  end\nend\n")
+      source.sub(/\n  end\nend\n\z/) { "\n#{accessor}  end\nend\n" }
     end
     report("insert", shown, "client.#{file}")
     changed = true
