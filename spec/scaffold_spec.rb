@@ -183,7 +183,7 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
 
     it "sends a body on DELETE as a body, and a JSON array body as given" do
       expect(scaffold("Apple Pay", "--print").first).to include('@connection.delete("/apple-pay/domain") { |request| request.body = wire_body }')
-      expect(scaffold("Bulk Charge", "--print").first).to include('@connection.post("/bulkcharge", items)')
+      expect(scaffold("Bulk Charge", "--print").first).to include('@connection.post("/bulkcharge", charges)')
     end
 
     it "writes hash samples the way StandardRB wants them" do
@@ -537,6 +537,30 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
       File.write(names, %("GET /customer/{code}":\n  keywords:\n    code: email_or_code\n))
 
       expect(scaffold("Customer", "--print", "--names", names).first).to include("def fetch(email_or_code:)")
+    end
+
+    it "names a JSON array body `items`, or the keyword a hash entry's `body` gives" do
+      names = File.join(root, "names.yml")
+      File.write(names, "{}\n")
+      default = scaffold("Bulk Charge", "--print", "--names", names).first
+      File.write(names, %("POST /bulkcharge":\n  body: payments\n))
+      renamed = scaffold("Bulk Charge", "--print", "--names", names).first
+
+      expect(default).to include("def initiate(items:)")
+      expect(default).to include('validate_presence!(value: items, name: "items")')
+      expect(renamed).to include("def initiate(payments:)")
+      expect(renamed).to include('@connection.post("/bulkcharge", payments)')
+      expect(renamed).to include("@param payments [Array] The request body: an array of hashes, each with authorization, amount")
+    end
+
+    it "refuses a body keyword for an operation whose body is not a JSON array" do
+      names = File.join(root, "names.yml")
+      File.write(names, %("POST /customer":\n  body: customers\n))
+
+      _, stderr, status = scaffold("Customer", "--print", "--names", names)
+
+      expect(status).not_to be_success
+      expect(stderr).to include("not a JSON array")
     end
 
     it "refuses a keyword for a path variable the operation does not have" do
