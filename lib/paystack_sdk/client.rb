@@ -47,7 +47,7 @@ module PaystackSdk
     # @example
     # ```ruby
     #   transactions = client.transactions
-    #   response = transactions.initiate(params)
+    #   response = transactions.initiate(email: "ama@example.com", amount: 10000)
     # ```
     def transactions
       @transactions ||= Resources::Transactions.new(@connection)

@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Breaking
+
+- `Transactions` is now generated from Paystack's OpenAPI spec and takes keyword arguments instead of payload hashes. Method names are unchanged.
+  - `initiate(email:, amount:, ...)`, `charge_authorization(email:, amount:, authorization_code:, ...)` and `partial_debit(email:, amount:, authorization_code:, currency:, ...)` no longer accept a hash; use `initiate(**params)` to migrate.
+  - `fetch(id:)` replaces `fetch(transaction_id)`; `timeline(id:)` replaces `timeline(id_or_reference)`.
+  - `list`, `totals` and `export` take named filters (`from`, `to`, `status`, `customer_id`, `settlement`, ...) instead of `**params`, so a misspelt filter now raises `ArgumentError`. `list` no longer defaults `per_page: 50, page: 1`; Paystack's own defaults apply.
+  - The numeric customer filter on `list` and `export` is `customer_id:` (it sends Paystack's `customer`).
+
 ### Fixed
 
 - Values placed in URL paths (references, codes, ids, card BINs) are now escaped, and `.` / `..` are refused with `PaystackSdk::InvalidValueError` before any request is sent. Previously a value such as `".."` was resolved by the URL builder into a different endpoint (`transactions.verify(reference: "..")` called `/transaction`), and `/`, `?` or `#` in a value changed the path or query. Affects `transactions` (`verify`, `fetch`, `timeline`), `transfers` (`fetch`, `verify`), `transfer_recipients` (`fetch`, `update`, `delete`), `customers` (`fetch`, `update`, `validate`) and `verification` (`resolve_card_bin`).
@@ -11,6 +19,7 @@
 
 ### Added
 
+- `transactions.export` accepts `currency`, `amount`, `settled` and `payment_page` (documented by Paystack, absent from the OpenAPI spec; confirmed to filter results against the test API) and `subaccount_code`. Paystack's docs also list `perPage` and `page` on Export, but the API ignores them, so the SDK does not offer them.
 - `PaystackSdk::Webhook` verifies Paystack webhook signatures (HMAC SHA512, constant-time) and parses events: `valid_signature?`, `verify!`, `construct_event`, `sign`, `trusted_ip?`, plus the documented `EVENTS` and `IP_ADDRESSES`. New errors: `WebhookError`, `InvalidSignatureError`, `InvalidPayloadError`.
 - `Response#meta` exposes the pagination metadata (`total`, `page`, `pageCount`, `perPage`) that list endpoints return.
 - Default request timeouts (`timeout`, `open_timeout`) and automatic retries with backoff (`max_retries`, `retry_interval`, `retry_non_idempotent`) on SDK-built connections. Writes are only retried on `429`; `GET`s are also retried on network failures and 502/503/504.
