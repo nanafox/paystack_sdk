@@ -183,10 +183,19 @@ RSpec.describe "what paystack-sdk-money-safety says", contract: false do
       expect(response.original_response.to_s).not_to include(key)
     end
 
-    it "shows the key in inspect of a Client, a resource and the connection (the skill warns about this)" do
-      expect(client.inspect).to include(key)
-      expect(client.transactions.inspect).to include(key)
-      expect(client.connection.inspect).to include(key)
+    it "keeps the key out of inspect of a Client, a resource and the connection, as the skill says" do
+      expect(client.inspect).not_to include(key)
+      expect(client.transactions.inspect).not_to include(key)
+      expect(client.connection.inspect).not_to include(key)
+      expect(client.connection.headers.inspect).to include("[REDACTED]")
+      expect(client.connection.headers["Authorization"]).to eq("Bearer #{key}")
+    end
+
+    it "says in the skill which versions leaked it and how to be safe on them" do
+      text = File.read(File.join(PaystackSdk::Skills::SOURCE_DIR, "paystack-sdk-money-safety", "SKILL.md"))
+
+      expect(text).to include("Versions before 0.4.1 printed the key in full")
+      expect(text).to include("rotate the key")
     end
   end
 

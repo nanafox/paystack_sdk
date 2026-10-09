@@ -80,7 +80,7 @@ Do not pass `retry_non_idempotent: true` to `PaystackSdk::Client.new`. It makes 
 ## 6. Keep secret keys out of logs and error reports
 
 - The SDK puts nothing of the key in its error messages (checked for timeouts, connection failures, 401, 429 and 5xx), nor in `Response#inspect`.
-- **`inspect` of a `PaystackSdk::Client`, of any resource (`client.transactions`) and of `client.connection` does contain the secret key**, because the connection holds the `Authorization` header. Never log, `pp`, or send to an error reporter a client, a resource or a connection, and keep them out of the variables your error reporter captures. Log the reference, the `Response#error_message` and the HTTP `status_code` instead.
+- **`inspect` and `pp` of a `PaystackSdk::Client`, of any resource (`client.transactions`) and of the connection the SDK builds do not include the secret key** (they print the class name; the connection's `Authorization` header shows `[REDACTED]`). **Versions before 0.4.1 printed the key in full**: on one of those, never log, `pp`, or send to an error reporter a client, a resource or a connection, and rotate the key if you may have. A connection you build yourself and pass to `Client.new(connection)` is yours: its own `inspect` is unchanged. Whatever the version, log the reference, the `Response#error_message` and the HTTP `status_code` instead of whole objects.
 - Read the key from the environment or encrypted credentials; never commit it.
 
 ## 7. Key hygiene
@@ -120,7 +120,7 @@ Run a daily job that compares your records with Paystack's. Calls the gem has fo
 | Retries | `retry_non_idempotent` is not set |
 | Webhooks | Signature checked on the raw body; 200 fast; deduped; no value from the event body |
 | Stored data | Only `authorization_code` (encrypted) and display fields; no card number, CVV, PIN or OTP anywhere, including logs |
-| Secrets | No client, resource or connection logged, inspected or captured by the error reporter |
+| Secrets | Key only from the environment or credentials; `paystack_sdk` >= 0.4.1 (earlier versions printed the key in `inspect`); nothing logs a whole client, resource or connection anyway |
 | Environments | `sandbox_only: true` outside production; nothing that reaches live mode (such as `storefronts.publish`) in tests or seeds |
 | Reconciliation | A scheduled job compares your records with `transactions.list` |
 
