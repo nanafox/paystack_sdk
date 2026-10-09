@@ -114,3 +114,9 @@
 
 # Orders: Paystack names the operation "Fetch Product Orders"; the scaffold would drop the last word.
 "GET /order/product/{id}": fetch_product_orders
+
+# "Publish Storefront": it copies the storefront and its products into LIVE mode, even with a test key
+# (seen on the test API, 2026-10-09: the response says "Storefront published to live" and the copy
+# is a live, active storefront that a test key cannot read or delete).
+"POST /storefront/{id}/publish":
+  note: "Publishing copies the storefront and its products into LIVE mode, even when you call it with a test key (sk_test_). The live copy is active, can be found by its slug, and cannot be read or deleted with a test key. Do not call this to try the API out; use `duplicate` instead."

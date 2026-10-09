@@ -548,6 +548,34 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
       expect(status).not_to be_success
       expect(stderr).to include("not a path variable")
     end
+
+    it "puts a note from the names file in the method's docs, wrapped, above @return" do
+      names = File.join(root, "names.yml")
+      note = "Publishing copies it into LIVE mode, even with a test key (sk_test_). " * 3
+      File.write(names, %("GET /customer/{code}":\n  note: "#{note.strip}"\n))
+
+      out = scaffold("Customer", "--print", "--names", names).first
+      lines = out.lines.map(&:chomp)
+      start = lines.index { |l| l.include?("# @note Publishing copies it into LIVE mode") }
+
+      expect(start).not_to be_nil
+      expect(lines[start + 1]).to start_with("      #   ")
+      expect(lines[start..start + 4].join(" ")).to include("@return").or include("sk_test_")
+      expect(lines.count { |l| l.include?("# @note") }).to eq(1)
+      note_block = lines[start..].take_while { |l| !l.include?("# @return") }
+      expect(note_block.map(&:size).max).to be < 105
+      expect(valid_ruby?(out)).to be(true)
+    end
+
+    it "refuses an unknown key in a names entry, naming the allowed ones" do
+      names = File.join(root, "names.yml")
+      File.write(names, %("GET /customer/{code}":\n  warning: "x"\n))
+
+      _, stderr, status = scaffold("Customer", "--print", "--names", names)
+
+      expect(status).not_to be_success
+      expect(stderr).to include("unknown key(s) warning").and include("note")
+    end
   end
 
   describe "checks the SDK has always made" do
