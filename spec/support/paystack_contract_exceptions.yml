@@ -263,3 +263,21 @@
   description: The ID of the refunded transaction.
   reason: Listed on the canonical List Refunds section ("The transaction ID of the refunded transaction") but absent from the spec. Confirmed against the Paystack test API on 2026-10-09 with refunds on two transactions, where transaction=<id> returned only that transaction's refund and transaction=<reference> returned none. The Ruby keyword is transaction_id because it takes the numeric ID, not a reference.
   docs: https://paystack.com/docs/api/refund/#list
+
+- operation: "GET /settlement"
+  in: query
+  wire: from
+  spec: null
+  type: string
+  description: A timestamp from which to start listing settlements, for example 2016-09-24T00:00:05.000Z or 2016-09-21.
+  reason: Listed on the Settlements List section of the docs (via the docs mirror) but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, which answers an invalid value with 400 "Invalid 'from' date passed" and accepts 2016-09-21, 2016-09-24T00:00:05.000Z and 2016-09-24T00:00:05Z. The test account has no settlements, so the filtering itself could not be observed.
+  docs: https://paystack.com/docs/api/settlement/#list
+
+- operation: "GET /settlement"
+  in: query
+  wire: to
+  spec: null
+  type: string
+  description: A timestamp at which to stop listing settlements, for example 2016-09-24T00:00:05.000Z or 2016-09-21.
+  reason: Listed on the Settlements List section of the docs (via the docs mirror) but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, which answers an invalid value with 400 "Invalid 'to' date passed". The test account has no settlements, so the filtering itself could not be observed.
+  docs: https://paystack.com/docs/api/settlement/#list
