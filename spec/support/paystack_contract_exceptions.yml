@@ -377,3 +377,53 @@
   type: integer
   reason: The spec types active as a boolean; the docs do not list it. Confirmed against the Paystack test API on 2026-10-09 with three inactive and four active subaccounts, where active=1 returns the four active ones and active=0 the three inactive ones, but active=true also returns the three inactive ones (any value other than 1 is read as inactive). The SDK sends 1 or 0.
   docs: https://paystack.com/docs/api/subaccount/#list
+
+- operation: "POST /plan"
+  in: body
+  wire: interval
+  spec: interval
+  enum: [hourly, daily, weekly, monthly, quarterly, biannually, annually]
+  reason: The spec lists daily, weekly, monthly, biannually and annually; the canonical Update Plan section also lists hourly and quarterly, and Create Plan lists quarterly. Confirmed against the Paystack test API on 2026-10-09 that all seven values are accepted by Create Plan (each passed the interval check and reached the amount check; fortnightly and Monthly answer 400 "Invalid interval selected", so the value is case-sensitive), and a plan was created with quarterly. Create Plan's docs omit hourly but the API accepts it.
+  docs: https://paystack.com/docs/api/plan/#create
+
+- operation: "PUT /plan/{code}"
+  in: body
+  wire: interval
+  spec: interval
+  enum: [hourly, daily, weekly, monthly, quarterly, biannually, annually]
+  reason: The spec lists daily, weekly, monthly, biannually and annually; the canonical Update Plan section also lists hourly and quarterly. Confirmed against the Paystack test API on 2026-10-09 that hourly is accepted on update (200 "Plan updated") and fortnightly is refused with 400 "Invalid interval selected".
+  docs: https://paystack.com/docs/api/plan/#update
+
+- operation: "PUT /plan/{code}"
+  in: body
+  wire: description
+  spec: description
+  type: string
+  reason: The spec types description as a boolean on Update Plan (a copy-paste error); the canonical docs say string. Confirmed against the Paystack test API on 2026-10-09 that true is refused with 400 "\"description\" must be a string" and a string updates the plan.
+  docs: https://paystack.com/docs/api/plan/#update
+
+- operation: "PUT /plan/{code}"
+  in: body
+  wire: update_existing_subscriptions
+  spec: null
+  type: boolean
+  description: Set to true if you want the existing subscriptions to use the new changes. Set to false and only new subscriptions will be changed. Defaults to true when not set.
+  reason: Listed on the canonical Update Plan section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09 that it is read as a boolean ("abc" is refused with 400 "\"update_existing_subscriptions\" must be a boolean"). Its effect on existing subscriptions was not exercised, because the test plan had none; the docs say it defaults to true.
+  docs: https://paystack.com/docs/api/plan/#update
+
+- operation: "GET /plan"
+  in: query
+  wire: status
+  spec: null
+  type: string
+  description: Filter list by plans with specified status.
+  reason: Listed on the canonical List Plans section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09 that it changes results (status=bogus, archived, complete and Active return no plans, while active and inactive each returned all three plans on the account), but which statuses Paystack defines was not settled, so no enum is enforced.
+  docs: https://paystack.com/docs/api/plan/#list
+
+- operation: "GET /plan"
+  in: query
+  wire: interval
+  spec: interval
+  enum: [hourly, daily, weekly, monthly, quarterly, biannually, annually]
+  reason: The spec lists daily, weekly, monthly, biannually and annually for the interval filter. Confirmed against the Paystack test API on 2026-10-09 that interval=hourly filters (it returned exactly the one plan whose interval was hourly at the time) and interval=bogus returns no plans, so the filter takes the same seven values Create and Update Plan accept.
+  docs: https://paystack.com/docs/api/plan/#list

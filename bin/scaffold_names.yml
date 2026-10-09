@@ -55,3 +55,11 @@
 
 # "Fetch Balance Ledger": the docs call it "Fetch Balance Ledger"; the SDK method is `ledger` (Balances#ledger).
 "GET /balance/ledger": ledger
+
+# "Fetch Plan" and "Update Plan": the docs name the path variable id_or_code (plan ID or code).
+"GET /plan/{code}":
+  keywords:
+    code: id_or_code
+"PUT /plan/{code}":
+  keywords:
+    code: id_or_code
