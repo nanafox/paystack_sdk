@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-09
+
 ### Breaking
 
 - `Transactions` is now generated from Paystack's OpenAPI spec and takes keyword arguments instead of payload hashes. Method names are unchanged.
