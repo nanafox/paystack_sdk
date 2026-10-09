@@ -20,7 +20,13 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
 
   after { FileUtils.remove_entry(root) }
 
+  # Saved docs pages (tmp/docs-snapshots, not committed) change the @see anchors, so examples run
+  # against an empty directory unless they bring their own.
+  let(:no_docs) { Dir.mktmpdir("nodocs") }
+  after { FileUtils.remove_entry(no_docs) if File.exist?(no_docs) }
+
   def scaffold(*args)
+    args += ["--docs", no_docs] unless args.include?("--docs")
     Open3.capture3(RbConfig.ruby, script, *args)
   end
 
@@ -69,6 +75,37 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
       expect(stdout).to include('"/subaccount/#{escape_path(code, name: "code")}"')
       expect(stdout).to include("# @see https://paystack.com/docs/api/subaccount/#fetch-subaccount")
       expect(stdout).to match(/def create\(\n\s+business_name:,\n\s+settlement_bank:,\n\s+account_number:,\n\s+percentage_charge:,\n\s+description: nil/)
+    end
+
+    it "cites the anchor the docs page uses, from the saved docs pages" do
+      docs = Dir.mktmpdir("docs")
+      File.write(File.join(docs, "subaccount.html"), <<~HTML)
+        <h2 id="fetch"><a href="#fetch"><span></span></a>Fetch Subaccount </h2>
+        <pre>curl "https://api.paystack.co/subaccount/:id_or_code" -X GET</pre>
+        <h2 id="create"><a href="#create"><span></span></a>Create Subaccount </h2>
+        <pre>curl "https://api.paystack.co/subaccount" -H "Authorization: Bearer SECRET" -X POST</pre>
+      HTML
+
+      stdout, = scaffold("Subaccount", "--print", "--docs", docs)
+
+      expect(stdout).to include("# @see https://paystack.com/docs/api/subaccount/#fetch\n")
+      expect(stdout).to include("# @see https://paystack.com/docs/api/subaccount/#create\n")
+    ensure
+      FileUtils.remove_entry(docs)
+    end
+
+    it "takes the docs page name from the file the operation is on" do
+      docs = Dir.mktmpdir("docs")
+      File.write(File.join(docs, "split-payments.html"), <<~HTML)
+        <h2 id="list-splits"><a href="#x"><span></span></a>List Split </h2>
+        <pre>curl "https://api.paystack.co/split" -X GET</pre>
+      HTML
+
+      stdout, = scaffold("Split", "--print", "--docs", docs)
+
+      expect(stdout).to include("# @see https://paystack.com/docs/api/split-payments/#list-splits\n")
+    ensure
+      FileUtils.remove_entry(docs)
     end
 
     it "wraps long signatures and builds the wire hash in a named local" do

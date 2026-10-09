@@ -24,6 +24,7 @@
 #   bin/paystack-scaffold --tags                 # the tags you can scaffold
 #   --root DIR                                   # write under DIR instead of the repository (for tests)
 #   --names FILE                                 # method names to use (default: bin/scaffold_names.yml)
+#   --docs DIR                                   # saved docs pages for @see anchors (default: tmp/docs-snapshots/mirror)
 #
 # It follows the conventions in .claude/skills/paystack-api-workflow/SKILL.md:
 # keywords for every parameter (required ones first), snake_case names mapped to the wire names
@@ -33,6 +34,7 @@
 # and anything the spec does not say. Read the docs page for each operation before keeping it.
 
 require "yaml"
+require "cgi"
 
 # Ruby's own method names, taken before this script defines any helper of its own: a top-level
 # `def resolve` here would otherwise count as a method every resource inherits.
@@ -73,10 +75,12 @@ print_only = flag?("--print")
 spec_mode = flag?("--spec")
 root = File.expand_path(option("--root") || File.expand_path("..", __dir__))
 names_file = option("--names") || DEFAULT_NAMES_FILE
+docs_dir = File.expand_path(option("--docs") || File.expand_path("../tmp/docs-snapshots/mirror", __dir__))
 @spec = YAML.safe_load_file(SPEC_FILE, aliases: true)
 @exceptions = YAML.safe_load_file(EXCEPTIONS_FILE)
 @names = YAML.safe_load_file(names_file) || {}
 @root = root
+@docs_dir = docs_dir
 
 def resolve(node)
   while node.is_a?(Hash) && node["$ref"]
@@ -417,10 +421,41 @@ def connection_call(entry, params, indent)
   [setup, call]
 end
 
+# Where Paystack's docs describe an operation, from the docs pages saved by `bin/paystack-spec
+# docs-fetch` (gitignored): {[VERB, segments] => [page, anchor]}. Empty when none are saved.
+def docs_index
+  @docs_index ||= Dir[File.join(@docs_dir, "*.html")].sort.each_with_object({}) do |file, index|
+    page = File.basename(file, ".html")
+    File.read(file).split(/(?=<h2 id=")/).select { |part| part.start_with?(%(<h2 id=")) }.each do |section|
+      text = CGI.unescapeHTML(section.gsub(/<[^>]+>/, " "))
+      verb = text[/-X\s+(GET|POST|PUT|DELETE|PATCH)\b/, 1] or next
+      path = text[%r{https://api\.paystack\.co(/[^\s"']*)}, 1] or next
+      index[[verb, path.sub(/\?.*/, "").split("/")]] ||= [page, section[/<h2 id="([^"]+)"/, 1]]
+    end
+  end
+end
+
+# The docs page and anchor for an operation, or nil when no docs page is saved or it is not on one.
+# A spec `{variable}` matches any docs segment (`:id`, `{id}`, or a sample id like `12345`).
+def docs_anchor(verb, spec_path)
+  wanted = spec_path.split("/")
+  docs_index.each do |(docs_verb, segments), found|
+    next unless docs_verb == verb.upcase && segments.size == wanted.size
+
+    return found if wanted.zip(segments).all? { |spec_part, docs_part| spec_part.start_with?("{") || spec_part == docs_part }
+  end
+  nil
+end
+
 def render_method(entry, tag, name)
   params = parameters_for(entry)
   op = entry[:op]
-  anchor = op["summary"].to_s.downcase.gsub(/[^a-z0-9]+/, "-").gsub(/\A-|-\z/, "")
+  page, anchor = docs_anchor(entry[:verb], entry[:path])
+  unless anchor
+    # no saved docs page: the best guess from the summary, which is not always the docs' anchor
+    page = snake(tag).tr("_", "-")
+    anchor = op["summary"].to_s.downcase.gsub(/[^a-z0-9]+/, "-").gsub(/\A-|-\z/, "")
+  end
 
   out = []
   out << "      # #{op["summary"]}."
@@ -433,7 +468,7 @@ def render_method(entry, tag, name)
   end
   out << "      # @return [PaystackSdk::Response] The response from the Paystack API."
   out << "      # @raise [PaystackSdk::Error] If a parameter is invalid or the API request fails."
-  out << "      # @see https://paystack.com/docs/api/#{snake(tag).tr("_", "-")}/##{anchor}"
+  out << "      # @see https://paystack.com/docs/api/#{page}/##{anchor}"
   out.concat(definition(name, params, 6))
   validations = validation_lines(params)
   validations.flat_map { |line| line.split("\n") }.each { |line| out << "        #{line}" }
