@@ -617,3 +617,21 @@
   type: integer
   reason: The docs say id is an integer; the spec says a string. On 2026-10-09 the Paystack test API answered a numeric id with its normal validation and "Page not found" responses, and a slug in the same position with HTTP 500 "An error occurred" (code unknown). Only the numeric ID is accepted.
   docs: https://paystack.com/docs/api/page/#add-products
+
+- operation: "POST /product"
+  in: body
+  wire: description
+  spec: description
+  required: false
+  description: The description of the product.
+  reason: The spec and the docs both mark description required. Confirmed against the Paystack test API on 2026-10-09, where a request with name, price and currency but no description was created (201, description null), while omitting name, price or currency returned 400 "Name is required", "Price is required" or "Currency is required".
+  docs: https://paystack.com/docs/api/product/#create
+
+- operation: "POST /product"
+  in: body
+  wire: metadata
+  spec: metadata
+  type: object
+  description: A set of key/value pairs that you can attach to the product.
+  reason: The spec says stringified JSON. Confirmed against the Paystack test API on 2026-10-09, where a JSON string is accepted but stored as an object of its characters ({"0":"{","1":"\"",...}), and a JSON object is stored as given ({"k":"v"}). The update operation's spec already types it as an object.
+  docs: https://paystack.com/docs/api/product/#create
