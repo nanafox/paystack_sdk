@@ -88,6 +88,8 @@ The `paystack_sdk` gem provides a simple and intuitive interface for interacting
   - [Apple Pay](#apple-pay)
     - [List Registered Domains](#list-registered-domains)
     - [Register and Unregister a Domain (unverified)](#register-and-unregister-a-domain-unverified)
+  - [Integration](#integration)
+    - [Payment Session Timeout](#payment-session-timeout)
   - [Response Handling](#response-handling)
     - [Working with Response Objects](#working-with-response-objects)
     - [Accessing the Original Response](#accessing-the-original-response)
@@ -1612,6 +1614,22 @@ paystack.apple_pay.unregister_domain(domain_name: "pay.example.com")
 ```
 
 **These two methods have not been called against the Paystack API.** They change the account's Apple Pay domain configuration, which is account-wide and public and may reach live mode even with a test key (`sk_test_`), so they were deliberately not tried. They follow Paystack's docs and OpenAPI spec: one domain per call, sent as `domainName`, and `unregister_domain` is a `DELETE` that carries the domain in a JSON body. How Paystack answers (and whether it reads a body on `DELETE`) is unconfirmed. Try them with a domain you own, and check the result in the dashboard.
+
+### Integration
+
+Settings of your Paystack integration (the account). Currently the payment session timeout.
+
+#### Payment Session Timeout
+
+```ruby
+# Seconds before a transaction becomes invalid. The test API returned 0 for an account that never set one.
+response = paystack.integrations.fetch_payment_session_timeout
+puts response.data.payment_session_timeout
+
+paystack.integrations.update_payment_session_timeout(timeout: 30)
+```
+
+`update_payment_session_timeout` changes a setting of the whole integration, which may be shared with live mode even when you use a test key, so treat it as a live change. It is **unverified**: it was not called against the Paystack API while building the SDK for that reason. It is generated from the OpenAPI spec and the docs page (`PUT /integration/payment_session_timeout`, body `timeout`, an integer in seconds). Only `fetch_payment_session_timeout` was checked against the API.
 
 ### Response Handling
 
