@@ -748,7 +748,7 @@ end
 paystack.transfers.verify(reference: "acv_9ee55786-2323-4760-98e2-6380c9cb3f68")
 
 # Fetch by transfer ID or code
-paystack.transfers.fetch(id: "TRF_v5tip3zx8nna9o78")
+paystack.transfers.fetch(id_or_code: "TRF_v5tip3zx8nna9o78")
 
 # List, with Paystack's page pagination (default 50 per page)...
 paystack.transfers.list(per_page: 20, page: 2, from: "2025-01-01", to: "2025-04-30")

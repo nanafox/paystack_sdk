@@ -30,6 +30,7 @@
   - `metadata` on `create` and `update` must be a Hash; it is sent as a JSON object (Paystack rejects a JSON string).
 - `Transfers` is now generated from Paystack's OpenAPI spec and takes keyword arguments instead of payload hashes. Existing method names are unchanged.
   - `create(source:, amount:, recipient:, reference:, reason: nil, currency: nil)` no longer accepts a hash; use `create(**params)` to migrate. `reference` is now required, as Paystack's docs and spec both require it, and `currency` must be one of NGN, ZAR, KES, GHS.
+  - `fetch(id_or_code:)` replaces `fetch(id:)`, using the docs' name for the path variable (it takes a transfer ID or a `TRF_` code). The request is unchanged.
   - `list` takes named filters (`per_page`, `page`, `from`, `to`, `recipient`, `status`, and cursor pagination with `use_cursor`, `next_cursor`, `previous`) instead of a query hash, so a misspelt filter now raises `ArgumentError`. `per_page` is sent as `perPage`.
 
 ### Fixed
