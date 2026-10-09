@@ -17,7 +17,7 @@
   - `banks.list` takes named filters instead of a hash (`per_page:` is sent as `perPage`, `next_cursor:` as `next`) and now accepts every filter Paystack documents (`country`, `type`, `gateway`, `use_cursor`, ...). Its `type` enum uses `ghipss` (the spec's `ghipps` is a typo), and `currency` still accepts `USD`.
 - `TransferRecipients` is now generated from Paystack's OpenAPI spec and takes keyword arguments instead of payload hashes. Method names are unchanged.
   - `create(type:, name:, account_number:, bank_code:, ...)` no longer accepts a hash; use `create(**params)` to migrate. `type` is checked against Paystack's list (`nuban`, `ghipss`, `mobile_money`, `basa`, `authorization`).
-  - `fetch(code:)`, `update(code:, name:, email:)` and `delete(code:)` replace `recipient_code:`. The value can be the recipient code or its numeric ID. `update` takes `name:` and `email:` instead of a `params:` hash; `name` is optional, as the API accepts an update with only `email` (docs say `name` is required; checked against the test API).
+  - `fetch(id_or_code:)`, `update(id_or_code:, name:, email:)` and `delete(id_or_code:)` replace `recipient_code:`. The value can be the recipient code or its numeric ID. `update` takes `name:` and `email:` instead of a `params:` hash; `name` is optional, as the API accepts an update with only `email` (docs say `name` is required; checked against the test API).
   - `list` takes `per_page:`, `page:`, `use_cursor:`, `next_cursor:` and `previous:` instead of a query hash. `perPage` is what Paystack's docs name the page size; the API honours it. `from` and `to` are in the docs but the API ignores them, so they are not offered.
 
 ### Fixed

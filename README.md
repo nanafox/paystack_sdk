@@ -635,9 +635,9 @@ response.data.errors  # records Paystack rejected, with the reason
 paystack.transfer_recipients.list(per_page: 20, page: 2)
 
 # fetch, update and delete take the recipient code or the numeric ID
-paystack.transfer_recipients.fetch(code: "RCP_2x5j67tnnw1t98k")
-paystack.transfer_recipients.update(code: "RCP_2x5j67tnnw1t98k", name: "Ama K. Mensah", email: "ama@example.com")
-paystack.transfer_recipients.delete(code: "RCP_2x5j67tnnw1t98k") # Paystack sets the recipient to inactive
+paystack.transfer_recipients.fetch(id_or_code: "RCP_2x5j67tnnw1t98k")
+paystack.transfer_recipients.update(id_or_code: "RCP_2x5j67tnnw1t98k", name: "Ama K. Mensah", email: "ama@example.com")
+paystack.transfer_recipients.delete(id_or_code: "RCP_2x5j67tnnw1t98k") # Paystack sets the recipient to inactive
 ```
 
 Paystack's docs list `from` and `to` filters on the list endpoint, but the API ignores them (checked against the test API), so the SDK does not offer them. Cursor pagination is available with `use_cursor: true`, `next_cursor:` and `previous:`.

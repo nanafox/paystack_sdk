@@ -106,34 +106,34 @@ module PaystackSdk
       #
       # Fetch the details of a transfer recipient
       #
-      # @param code [String] The recipient code (RCP_...) or numeric ID (Paystack names this path variable id_or_code)
+      # @param id_or_code [String] The recipient code (RCP_...) or numeric ID
       # @return [PaystackSdk::Response] The response from the Paystack API.
       # @raise [PaystackSdk::Error] If a parameter is invalid or the API request fails.
       # @see https://paystack.com/docs/api/transfer-recipient/#fetch
-      def fetch(code:)
-        validate_presence!(value: code, name: "code")
+      def fetch(id_or_code:)
+        validate_presence!(value: id_or_code, name: "id_or_code")
 
-        handle_response(@connection.get("/transferrecipient/#{escape_path(code, name: "code")}"))
+        handle_response(@connection.get("/transferrecipient/#{escape_path(id_or_code, name: "id_or_code")}"))
       end
 
       # Update Transfer Recipient.
       #
       # Update the details of a transfer recipient
       #
-      # @param code [String] The recipient code (RCP_...) or numeric ID (Paystack names this path variable id_or_code)
+      # @param id_or_code [String] The recipient code (RCP_...) or numeric ID
       # @param name [String] Recipient's name
       # @param email [String] Recipient's email address
       # @return [PaystackSdk::Response] The response from the Paystack API.
       # @raise [PaystackSdk::Error] If a parameter is invalid or the API request fails.
       # @see https://paystack.com/docs/api/transfer-recipient/#update
-      def update(code:, name: nil, email: nil)
-        validate_presence!(value: code, name: "code")
+      def update(id_or_code:, name: nil, email: nil)
+        validate_presence!(value: id_or_code, name: "id_or_code")
         validate_email!(email: email, name: "email", allow_nil: true)
 
         wire_body = to_wire({name:, email:}, WIRE_NAMES)
 
         handle_response(
-          @connection.put("/transferrecipient/#{escape_path(code, name: "code")}", wire_body)
+          @connection.put("/transferrecipient/#{escape_path(id_or_code, name: "id_or_code")}", wire_body)
         )
       end
 
@@ -141,14 +141,14 @@ module PaystackSdk
       #
       # Delete a transfer recipient (sets the transfer recipient to inactive)
       #
-      # @param code [String] The recipient code (RCP_...) or numeric ID (Paystack names this path variable id_or_code)
+      # @param id_or_code [String] The recipient code (RCP_...) or numeric ID
       # @return [PaystackSdk::Response] The response from the Paystack API.
       # @raise [PaystackSdk::Error] If a parameter is invalid or the API request fails.
       # @see https://paystack.com/docs/api/transfer-recipient/#delete
-      def delete(code:)
-        validate_presence!(value: code, name: "code")
+      def delete(id_or_code:)
+        validate_presence!(value: id_or_code, name: "id_or_code")
 
-        handle_response(@connection.delete("/transferrecipient/#{escape_path(code, name: "code")}"))
+        handle_response(@connection.delete("/transferrecipient/#{escape_path(id_or_code, name: "id_or_code")}"))
       end
     end
   end

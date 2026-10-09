@@ -18,9 +18,9 @@ RSpec.describe "escaping of path segments", contract: false do
     ["transactions.timeline", :get, "/transaction/timeline/", "", ->(c, v) { c.transactions.timeline(id: v) }],
     ["transfers.fetch", :get, "/transfer/", "", ->(c, v) { c.transfers.fetch(id: v) }],
     ["transfers.verify", :get, "/transfer/verify/", "", ->(c, v) { c.transfers.verify(reference: v) }],
-    ["transfer_recipients.fetch", :get, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.fetch(code: v) }],
-    ["transfer_recipients.update", :put, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.update(code: v, name: "Ama") }],
-    ["transfer_recipients.delete", :delete, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.delete(code: v) }],
+    ["transfer_recipients.fetch", :get, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.fetch(id_or_code: v) }],
+    ["transfer_recipients.update", :put, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.update(id_or_code: v, name: "Ama") }],
+    ["transfer_recipients.delete", :delete, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.delete(id_or_code: v) }],
     ["customers.fetch", :get, "/customer/", "", ->(c, v) { c.customers.fetch(v) }],
     ["customers.update", :put, "/customer/", "", ->(c, v) { c.customers.update(v, {first_name: "Ama"}) }],
     ["customers.validate", :post, "/customer/", "/identification", lambda { |c, v|

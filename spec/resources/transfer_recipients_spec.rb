@@ -51,7 +51,7 @@ RSpec.describe PaystackSdk::Resources::TransferRecipients do
         .with(body: {email: "ama@example.com"}.to_json)
         .to_return(ok)
 
-      resource.update(code: "RCP_1", email: "ama@example.com")
+      resource.update(id_or_code: "RCP_1", email: "ama@example.com")
 
       expect(stub).to have_been_requested
     end
@@ -111,11 +111,11 @@ RSpec.describe PaystackSdk::Resources::TransferRecipients do
   end
 
   describe "#fetch" do
-    it "sends GET /transferrecipient/{code} as Paystack documents it" do
+    it "sends GET /transferrecipient/{id_or_code} as Paystack documents it" do
       stub = stub_request(:get, "https://api.paystack.co/transferrecipient/sample_code")
         .to_return(ok)
 
-      response = resource.fetch(code: "sample_code")
+      response = resource.fetch(id_or_code: "sample_code")
 
       expect(response).to be_success
       expect(stub).to have_been_requested
@@ -123,11 +123,11 @@ RSpec.describe PaystackSdk::Resources::TransferRecipients do
   end
 
   describe "#update" do
-    it "sends PUT /transferrecipient/{code} as Paystack documents it" do
+    it "sends PUT /transferrecipient/{id_or_code} as Paystack documents it" do
       stub = stub_request(:put, "https://api.paystack.co/transferrecipient/sample_code")
         .to_return(ok)
 
-      response = resource.update(code: "sample_code")
+      response = resource.update(id_or_code: "sample_code")
 
       expect(response).to be_success
       expect(stub).to have_been_requested
@@ -135,11 +135,11 @@ RSpec.describe PaystackSdk::Resources::TransferRecipients do
   end
 
   describe "#delete" do
-    it "sends DELETE /transferrecipient/{code} as Paystack documents it" do
+    it "sends DELETE /transferrecipient/{id_or_code} as Paystack documents it" do
       stub = stub_request(:delete, "https://api.paystack.co/transferrecipient/sample_code")
         .to_return(ok)
 
-      response = resource.delete(code: "sample_code")
+      response = resource.delete(id_or_code: "sample_code")
 
       expect(response).to be_success
       expect(stub).to have_been_requested
