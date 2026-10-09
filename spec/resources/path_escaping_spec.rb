@@ -96,11 +96,18 @@ RSpec.describe "escaping of path segments", contract: false do
     ["bulk_charges.fetch_batch", :get, "/bulkcharge/", "", ->(c, v) { c.bulk_charges.fetch_batch(id_or_code: v) }],
     ["bulk_charges.fetch_charges", :get, "/bulkcharge/", "/charges", ->(c, v) { c.bulk_charges.fetch_charges(id_or_code: v) }],
     ["bulk_charges.pause_batch", :get, "/bulkcharge/pause/", "", ->(c, v) { c.bulk_charges.pause_batch(batch_code: v) }],
-    ["bulk_charges.resume_batch", :get, "/bulkcharge/resume/", "", ->(c, v) { c.bulk_charges.resume_batch(batch_code: v) }]
+    ["bulk_charges.resume_batch", :get, "/bulkcharge/resume/", "", ->(c, v) { c.bulk_charges.resume_batch(batch_code: v) }],
+    ["virtual_terminals.fetch", :get, "/virtual_terminal/", "", ->(c, v) { c.virtual_terminals.fetch(code: v) }],
+    ["virtual_terminals.update", :put, "/virtual_terminal/", "", ->(c, v) { c.virtual_terminals.update(code: v, name: "Front desk") }],
+    ["virtual_terminals.deactivate", :put, "/virtual_terminal/", "/deactivate", ->(c, v) { c.virtual_terminals.deactivate(code: v) }],
+    ["virtual_terminals.assign_destination", :post, "/virtual_terminal/", "/destination/assign", ->(c, v) { c.virtual_terminals.assign_destination(code: v, destinations: [{target: "+2341234567890", name: "Desk"}]) }],
+    ["virtual_terminals.unassign_destination", :post, "/virtual_terminal/", "/destination/unassign", ->(c, v) { c.virtual_terminals.unassign_destination(code: v, targets: ["+2341234567890"]) }],
+    ["virtual_terminals.add_split_code", :put, "/virtual_terminal/", "/split_code", ->(c, v) { c.virtual_terminals.add_split_code(code: v, split_code: "SPL_1") }],
+    ["virtual_terminals.remove_split_code", :delete, "/virtual_terminal/", "/split_code", ->(c, v) { c.virtual_terminals.remove_split_code(code: v, split_code: "SPL_1") }]
   ].freeze
 
   it "covers every method that puts a caller's value in a path" do
-    expect(calls.size).to eq(67)
+    expect(calls.size).to eq(74)
   end
 
   calls.each do |description, verb, before, after, call|

@@ -24,6 +24,7 @@ require_relative "resources/storefronts"
 require_relative "resources/bulk_charges"
 require_relative "resources/apple_pay"
 require_relative "resources/integrations"
+require_relative "resources/virtual_terminals"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -315,6 +316,14 @@ module PaystackSdk
     #  `Integrations` resource.
     def integrations
       @integrations ||= Resources::Integrations.new(@connection)
+    end
+
+    # Provides access to the `VirtualTerminals` resource.
+    #
+    # @return [PaystackSdk::Resources::VirtualTerminals] An instance of the
+    #  `VirtualTerminals` resource.
+    def virtual_terminals
+      @virtual_terminals ||= Resources::VirtualTerminals.new(@connection)
     end
 
     private
