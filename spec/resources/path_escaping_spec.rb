@@ -21,16 +21,27 @@ RSpec.describe "escaping of path segments", contract: false do
     ["transfer_recipients.fetch", :get, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.fetch(id_or_code: v) }],
     ["transfer_recipients.update", :put, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.update(id_or_code: v, name: "Ama") }],
     ["transfer_recipients.delete", :delete, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.delete(id_or_code: v) }],
-    ["customers.fetch", :get, "/customer/", "", ->(c, v) { c.customers.fetch(v) }],
-    ["customers.update", :put, "/customer/", "", ->(c, v) { c.customers.update(v, {first_name: "Ama"}) }],
+    ["customers.fetch", :get, "/customer/", "", ->(c, v) { c.customers.fetch(email_or_code: v) }],
+    ["customers.update", :put, "/customer/", "", ->(c, v) { c.customers.update(code: v, first_name: "Ama") }],
     ["customers.validate", :post, "/customer/", "/identification", lambda { |c, v|
-      c.customers.validate(v, {country: "GH", type: "bank_account", account_number: "0123456789", bank_code: "044"})
+      c.customers.validate(code: v, first_name: "Ama", last_name: "Mensah", type: "bank_account", country: "NG",
+        bvn: "20012345677", bank_code: "007", account_number: "0123456789")
+    }],
+    ["customers.verify_authorization", :get, "/customer/authorization/verify/", "", ->(c, v) { c.customers.verify_authorization(reference: v) }],
+    ["customers.initialize_direct_debit", :post, "/customer/", "/initialize-direct-debit", lambda { |c, v|
+      c.customers.initialize_direct_debit(id: v, account: {number: "0123456789", bank_code: "058"}, address: {street: "1 Road", city: "Ikeja", state: "Lagos"})
+    }],
+    ["customers.direct_debit_activation_charge", :put, "/customer/", "/directdebit-activation-charge", lambda { |c, v|
+      c.customers.direct_debit_activation_charge(id: v, authorization_id: 1)
+    }],
+    ["customers.fetch_mandate_authorizations", :get, "/customer/", "/directdebit-mandate-authorizations", lambda { |c, v|
+      c.customers.fetch_mandate_authorizations(id: v)
     }],
     ["miscellaneous.resolve_card_bin", :get, "/decision/bin/", "", ->(c, v) { c.miscellaneous.resolve_card_bin(bin: v) }]
   ].freeze
 
   it "covers every method that puts a caller's value in a path" do
-    expect(calls.size).to eq(12)
+    expect(calls.size).to eq(16)
   end
 
   calls.each do |description, verb, before, after, call|
@@ -66,7 +77,7 @@ RSpec.describe "escaping of path segments", contract: false do
   it "encodes the @ in an email used to fetch a customer" do
     stub = stub_request(:get, "https://api.paystack.co/customer/ama%40example.com").to_return(ok)
 
-    client.customers.fetch("ama@example.com")
+    client.customers.fetch(email_or_code: "ama@example.com")
 
     expect(stub).to have_been_requested
   end

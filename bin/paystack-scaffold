@@ -110,6 +110,17 @@ def snake(name)
   name.to_s.gsub(/([a-z\d])([A-Z])/, '\1_\2').gsub(/[^A-Za-z0-9]+/, "_").downcase.gsub(/\A_+|_+\z/, "")
 end
 
+# An operation's entry in the names file: a method name, or {name: ..., keywords: {path_variable: keyword}}.
+# Returns [method name or nil, {spec path variable => Ruby keyword}].
+def names_entry(key)
+  entry = @names[key]
+  return [entry, {}] unless entry.is_a?(Hash)
+
+  unknown = entry.keys - %w[name keywords]
+  abort "#{key}: unknown key(s) #{unknown.join(", ")} in the names file (expected name and keywords)." unless unknown.empty?
+  [entry["name"], entry["keywords"] || {}]
+end
+
 def ruby_word(name)
   if RESERVED.include?(name)
     (name == "next") ? "next_cursor" : "#{name}_value"
@@ -162,11 +173,16 @@ def parameters_for(entry)
   op_key = "#{entry[:verb].upcase} #{entry[:path]}"
   params = []
 
+  _, keywords = names_entry(op_key)
+  path_names = entry[:path_params].select { |p| p["in"] == "path" }.map { |p| p["name"] }
+  stray = keywords.keys - path_names
+  abort "#{op_key}: the names file renames #{stray.join(", ")}, which is not a path variable of this operation." unless stray.empty?
+
   entry[:path_params].select { |p| p["in"] == "path" }.each do |p|
     exc = exception_for(op_key, "path", p["name"])
     info = describe_schema(p["schema"])
     info[:type] = exc["type"] if exc && exc["type"]
-    params << Param.new(keyword: ruby_word(snake(p["name"])), wire: p["name"], required: true, info: info, description: one_line(p["description"]), location: :path)
+    params << Param.new(keyword: ruby_word(keywords[p["name"]] || snake(p["name"])), wire: p["name"], required: true, info: info, description: one_line(p["description"]), location: :path)
   end
 
   entry[:path_params].select { |p| p["in"] == "query" }.each do |p|
@@ -194,7 +210,12 @@ def parameters_for(entry)
     flat = flatten(body)
     flat["properties"].each do |name, prop|
       prop = resolve(prop)
-      params << Param.new(keyword: ruby_word(snake(name)), wire: name, required: flat["required"].include?(name), info: describe_schema(prop), description: one_line(prop["description"]), location: :body)
+      exc = exception_for(op_key, "body", name)
+      wire = exc ? exc["wire"] : name
+      info = describe_schema(prop)
+      info[:type] = exc["type"] if exc && exc["type"]
+      description = one_line((exc && exc["description"]) || prop["description"])
+      params << Param.new(keyword: ruby_word((exc && exc["ruby"]) || snake(wire)), wire: wire, required: flat["required"].include?(name), info: info, description: description, location: :body)
     end
 
     # body fields Paystack documents but the spec omits (exception entries with no `spec`)
@@ -282,7 +303,9 @@ end
 def validation_lines(params)
   params.flat_map do |p|
     lines = []
-    lines << %(validate_presence!(value: #{p.keyword}, name: "#{p.wire}")) if p.required
+    # a path value is named by its keyword (it is never sent by name); a sent value by its wire name
+    shown = (p.location == :path) ? p.keyword : p.wire
+    lines << %(validate_presence!(value: #{p.keyword}, name: "#{shown}")) if p.required
     lines.concat(convention_checks(p))
     lines << enum_check(p) if p.info[:enum]
     lines
@@ -443,7 +466,7 @@ def unique_names(entries, tag)
   seen = Hash.new(0)
   entries.map do |entry|
     key = "#{entry[:verb].upcase} #{entry[:path]}"
-    chosen = @names[key]
+    chosen, = names_entry(key)
     base = chosen || method_name(entry[:op]["summary"], tag)
     if shadows_ruby?(base)
       abort "#{key} would be named `#{base}`, which shadows a method Ruby or the resource base class " \
