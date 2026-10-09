@@ -14,3 +14,5 @@
 *.gem
 
 Gemfile.lock
+# git worktrees created for parallel work
+/.claude/worktrees/
