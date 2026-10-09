@@ -427,3 +427,20 @@
   enum: [hourly, daily, weekly, monthly, quarterly, biannually, annually]
   reason: The spec lists daily, weekly, monthly, biannually and annually for the interval filter. Confirmed against the Paystack test API on 2026-10-09 that interval=hourly filters (it returned exactly the one plan whose interval was hourly at the time) and interval=bogus returns no plans, so the filter takes the same seven values Create and Update Plan accept.
   docs: https://paystack.com/docs/api/plan/#list
+
+- operation: "GET /subscription"
+  in: query
+  wire: customer
+  spec: customer
+  type: integer
+  ruby: customer_id
+  reason: The docs list customer as an Integer customer ID; the spec types it as a string. Confirmed against the Paystack test API on 2026-10-09, where customer=<numeric id> returns that customer's subscription and the same customer's code (CUS_...) or email returns none. The Ruby keyword is customer_id because it takes the numeric ID.
+  docs: https://paystack.com/docs/api/subscription/#list
+
+- operation: "GET /subscription"
+  in: query
+  wire: plan
+  spec: plan
+  ruby: plan_id
+  reason: Naming only; the wire name and integer type match the spec. Confirmed against the Paystack test API on 2026-10-09, where plan=<numeric id> returns the plan's subscriptions and the plan's code (PLN_...) returns none. The Ruby keyword is plan_id because it takes the numeric ID, not the plan code that create takes.
+  docs: https://paystack.com/docs/api/subscription/#list
