@@ -138,6 +138,34 @@ module PaystackSdk
       @success
     end
 
+    # Whether this response is a successful payment: the call succeeded and the transaction's
+    # `status` is "success". Paystack's docs say to confirm the amount and currency as well, so
+    # pass the ones you expect and they are compared too.
+    #
+    # @param amount [Integer, nil] The amount (in the currency's subunit) you expect
+    # @param currency [String, nil] The currency you expect, e.g. "GHS"
+    # @return [Boolean]
+    #
+    # @example
+    #   response = client.transactions.verify(reference: ref)
+    #   response.paid?(amount: 5000, currency: "GHS")
+    def paid?(amount: nil, currency: nil)
+      return false unless success? && status?(:success)
+      return false if amount && field(:amount) != amount
+      return false if currency && field(:currency).to_s.upcase != currency.to_s.upcase
+
+      true
+    end
+
+    # Whether the `status` field in the response data equals the given value, e.g.
+    # `response.status?(:send_pin)` on a charge. Paystack names the values; none are assumed here.
+    #
+    # @param value [String, Symbol]
+    # @return [Boolean]
+    def status?(value)
+      field(:status).to_s == value.to_s
+    end
+
     # Check if the response failed
     #
     # @return [Boolean] true if the API request failed
@@ -165,6 +193,14 @@ module PaystackSdk
     def original_response
       @body
     end
+
+    # One field of a Hash response body, whichever way it is keyed; nil otherwise.
+    def field(name)
+      return nil unless @raw_data.is_a?(Hash)
+
+      @raw_data.key?(name) ? @raw_data[name] : @raw_data[name.to_s]
+    end
+    private :field
 
     # Access hash values via methods (dot notation)
     # Allows accessing data attributes directly: response.attribute_name
