@@ -29,6 +29,11 @@ bin/paystack-spec missing Customer
 - `lib/paystack_sdk/utils/connection_utils.rb`: Faraday connection: timeouts, `faraday-retry`, transport-error wrapping. Retries are deliberately conservative (see below).
 - `lib/paystack_sdk/validations.rb`: input validation raised before any request.
 
+## Two kinds of skills
+
+- `.claude/skills/` is for **contributors** to this repo (the Paystack workflow skill). It is not shipped in the gem.
+- `lib/paystack_sdk/skills/<paystack-sdk-topic>/SKILL.md` is for **users of the gem** and their agents. It is shipped, installed by `paystack_sdk skills install` / `rails g paystack_sdk:skills`. Every claim in one must be true of the gem and checked by a spec (see `spec/skills_overview_spec.rb`): never write a user skill from memory. Descriptions start with `Use when`. Leave `metadata:` out of the source; the installer stamps the gem version.
+
 ## Conventions
 
 - Style is StandardRB. Run it before committing.

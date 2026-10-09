@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- AI skills for Claude Code, shipped in the gem and installed with `paystack_sdk skills install` (any Ruby project) or `rails generate paystack_sdk:skills` (Rails) into `.claude/skills/`. The first skill is `paystack-sdk-overview`. Installing is idempotent, writes only `paystack-sdk-<topic>` folders marked with `.paystack_sdk.json`, never overwrites a folder it did not install (`--force` to replace), removes only its own stale folders, stamps each `SKILL.md` with the gem version, and supports `--dir`, `--global` and `--dry-run`. Also `skills list`, `skills path` and `skills uninstall`.
+- The `paystack_sdk` executable (`exe/paystack_sdk`); it handles the skills and `version` and does not load Faraday.
+
 ## [0.4.0] - 2026-10-09
 
 ### Added
