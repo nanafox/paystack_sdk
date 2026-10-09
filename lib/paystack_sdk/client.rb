@@ -11,6 +11,7 @@ require_relative "resources/refunds"
 require_relative "resources/settlements"
 require_relative "resources/splits"
 require_relative "resources/disputes"
+require_relative "resources/subaccounts"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -198,6 +199,14 @@ module PaystackSdk
     #  `Disputes` resource.
     def disputes
       @disputes ||= Resources::Disputes.new(@connection)
+    end
+
+    # Provides access to the `Subaccounts` resource.
+    #
+    # @return [PaystackSdk::Resources::Subaccounts] An instance of the
+    #  `Subaccounts` resource.
+    def subaccounts
+      @subaccounts ||= Resources::Subaccounts.new(@connection)
     end
 
     private

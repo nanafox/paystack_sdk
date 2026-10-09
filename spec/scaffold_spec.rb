@@ -71,10 +71,10 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
     it "uses keywords, escapes path segments and cites the docs" do
       stdout, = scaffold("Subaccount", "--print")
 
-      expect(stdout).to include("def fetch(code:)")
-      expect(stdout).to include('"/subaccount/#{escape_path(code, name: "code")}"')
+      expect(stdout).to include("def fetch(id_or_code:)")
+      expect(stdout).to include('"/subaccount/#{escape_path(id_or_code, name: "id_or_code")}"')
       expect(stdout).to include("# @see https://paystack.com/docs/api/subaccount/#fetch-subaccount")
-      expect(stdout).to match(/def create\(\n\s+business_name:,\n\s+settlement_bank:,\n\s+account_number:,\n\s+percentage_charge:,\n\s+description: nil/)
+      expect(stdout).to match(/def create\(\n\s+business_name:,\n\s+bank_code:,\n\s+account_number:,\n\s+percentage_charge:,\n\s+description: nil/)
     end
 
     it "cites the anchor the docs page uses, from the saved docs pages" do

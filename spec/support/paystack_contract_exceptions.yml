@@ -337,3 +337,43 @@
   description: The file name, with its extension, that you want to upload (for example filename.pdf).
   reason: Listed on the canonical Get Upload URL section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where it changes the response (upload_filename=a.pdf returned a signedUrl and fileName ending in .pdf; without it the file name has no extension).
   docs: https://paystack.com/docs/api/dispute/#upload-url
+
+- operation: "POST /subaccount"
+  in: body
+  wire: bank_code
+  spec: settlement_bank
+  description: Bank code for the bank, from the List Banks endpoint.
+  reason: The canonical Create Subaccount parameter table names the field bank_code; the spec (and the docs' cURL sample) say settlement_bank. Confirmed against the Paystack test API on 2026-10-09 (a GHS integration) that both names are read as the bank code, and bank_code is the one Paystack uses when both are sent (bank_code MTN with settlement_bank XYZ creates the subaccount; the reverse is refused with "Settlement Bank is invalid"). With neither, the API answers 400 "Bank code is required".
+  docs: https://paystack.com/docs/api/subaccount/#create
+
+- operation: "POST /subaccount"
+  in: body
+  wire: percentage_charge
+  spec: percentage_charge
+  description: The percentage the main account receives from each payment made to the subaccount.
+  reason: Description only; the spec describes percentage_charge as "Customer's phone number" (a copy-paste error). The description is the canonical Create Subaccount section's. The name and type agree. On the Paystack test API (2026-10-09) 0 is accepted and 100.5 is refused with 400 "Percentage charge must be greater than 0 and less than 100".
+  docs: https://paystack.com/docs/api/subaccount/#create
+
+- operation: "PUT /subaccount/{code}"
+  in: body
+  wire: bank_code
+  spec: settlement_bank
+  description: Bank code for the bank, from the List Banks endpoint.
+  reason: The canonical Update Subaccount parameter table names the field bank_code; the spec says settlement_bank. Confirmed against the Paystack test API on 2026-10-09 that both names are read as the bank code and bank_code wins when both are sent (bank_code MTN with settlement_bank XYZ updates; the reverse fails). Either one needs account_number with it ("Account number and Bank code are required").
+  docs: https://paystack.com/docs/api/subaccount/#update
+
+- operation: "PUT /subaccount/{code}"
+  in: body
+  wire: percentage_charge
+  spec: percentage_charge
+  description: The default percentage charged when receiving on behalf of this subaccount.
+  reason: Description only; the spec describes percentage_charge as "Customer's phone number" (a copy-paste error). The description is the canonical Update Subaccount section's. On the Paystack test API (2026-10-09) 0, 0.5, 99.99 and 100 are accepted and 100.01 is refused with 400 "Invalid percentage charge. It should be a number from 0 to 100".
+  docs: https://paystack.com/docs/api/subaccount/#update
+
+- operation: "GET /subaccount"
+  in: query
+  wire: active
+  spec: active
+  type: integer
+  reason: The spec types active as a boolean; the docs do not list it. Confirmed against the Paystack test API on 2026-10-09 with three inactive and four active subaccounts, where active=1 returns the four active ones and active=0 the three inactive ones, but active=true also returns the three inactive ones (any value other than 1 is read as inactive). The SDK sends 1 or 0.
+  docs: https://paystack.com/docs/api/subaccount/#list
