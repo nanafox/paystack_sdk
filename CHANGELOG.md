@@ -2,8 +2,11 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-09
+
 ### Added
 
+- The SDK now covers every operation in Paystack's OpenAPI spec (163 of 163). Resources that could not be exercised against the Paystack test API (Terminals, Dedicated Virtual Accounts, and the state-changing calls on Apple Pay, Integrations, Virtual Terminals and Direct Debits) follow the spec and docs, and their README sections and method docs say so.
 - `Pages` (`client.pages`), generated from Paystack's OpenAPI spec: `create`, `list`, `fetch(id_or_slug:)`, `update(id_or_slug:)`, `check_slug_availability(slug:)` and `add_products(id:, products:)`. Checked against the Paystack test API, `fetch` and `update` take the numeric ID or the slug, `update` needs no `name` or `description` (the docs mark them required), and `add_products` reads `products` (the docs say `product`) and takes the numeric ID only.
 - `Products` (`client.products`), generated from Paystack's OpenAPI spec: `create`, `list`, `fetch(id:)`, `update(id:, ...)` and `delete(id:)`. `delete` (`DELETE /product/{id}`) is in the spec but on no docs page; the test API deletes the product. Checked against the test API, `create` does not require `description` (the spec and docs say it does; `name`, `price` and `currency` are required) and takes `metadata` as a Hash (the spec says a JSON string, which Paystack stores as an object of its characters). Products are addressed by numeric ID.
 - `Orders` (`client.orders`): `create`, `list`, `fetch(id:)`, `fetch_product_orders(id:)` (the product's ID) and `validate(code:)` (a GET that takes the order code), generated from Paystack's OpenAPI spec. `create` follows the spec (`email`, `first_name`, `last_name`, `phone`, `currency`, `items`, `shipping`): the test API rejects the shape on Paystack's docs page (`customer`, `line_items`) with "Customer email is required". `items` are `{item: <product ID>, type: "product", quantity:, amount:}` and `shipping` needs `street_line`, `city`, `state`, `country` and `shipping_fee`. `fetch(id:)` returned a generic API error for a just-created order in the test API.
