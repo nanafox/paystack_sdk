@@ -19,6 +19,7 @@ require_relative "resources/dedicated_virtual_accounts"
 require_relative "resources/payment_requests"
 require_relative "resources/pages"
 require_relative "resources/products"
+require_relative "resources/orders"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -270,6 +271,14 @@ module PaystackSdk
     #  `Products` resource.
     def products
       @products ||= Resources::Products.new(@connection)
+    end
+
+    # Provides access to the `Orders` resource.
+    #
+    # @return [PaystackSdk::Resources::Orders] An instance of the
+    #  `Orders` resource.
+    def orders
+      @orders ||= Resources::Orders.new(@connection)
     end
 
     private
