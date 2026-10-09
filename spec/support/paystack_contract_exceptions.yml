@@ -28,8 +28,17 @@
   wire: customer
   spec: customer_code
   type: integer
-  reason: Canonical docs list customer as an integer customer ID; the spec says customer_code, a string.
+  ruby: customer_id
+  reason: Canonical docs list customer as an integer customer ID; the spec says customer_code, a string. The Ruby keyword is customer_id because it takes the numeric ID, not a CUS_ code.
   docs: https://paystack.com/docs/api/transaction/#list
+
+- operation: "GET /transaction/export"
+  in: query
+  wire: customer
+  spec: customer
+  ruby: customer_id
+  reason: Naming only. The wire name matches the spec; the Ruby keyword is customer_id for consistency with List Transactions, since the value is the numeric customer ID.
+  docs: https://paystack.com/docs/api/transaction/#export
 
 - operation: "GET /transaction"
   in: query
@@ -53,3 +62,39 @@
   type: integer
   reason: Canonical docs list recipient as an integer recipient ID; the spec describes a recipient code.
   docs: https://paystack.com/docs/api/transfer/#list
+
+- operation: "GET /transaction/export"
+  in: query
+  wire: currency
+  spec: null
+  type: string
+  description: Specify the transaction currency to export.
+  reason: Listed on the canonical Export Transactions section but absent from the spec. Confirmed against the Paystack test API on 2026-10-08, where it changes the exported rows.
+  docs: https://paystack.com/docs/api/transaction/#export
+
+- operation: "GET /transaction/export"
+  in: query
+  wire: amount
+  spec: null
+  type: integer
+  description: Filter transactions by amount, using the supported currency subunit.
+  reason: Listed on the canonical Export Transactions section but absent from the spec. Confirmed against the Paystack test API on 2026-10-08, where it changes the exported rows.
+  docs: https://paystack.com/docs/api/transaction/#export
+
+- operation: "GET /transaction/export"
+  in: query
+  wire: settled
+  spec: null
+  type: boolean
+  description: Set to true to export only settled transactions, false for pending transactions. Leave undefined to export all transactions.
+  reason: Listed on the canonical Export Transactions section but absent from the spec. Confirmed against the Paystack test API on 2026-10-08, where it changes the exported rows.
+  docs: https://paystack.com/docs/api/transaction/#export
+
+- operation: "GET /transaction/export"
+  in: query
+  wire: payment_page
+  spec: null
+  type: integer
+  description: Specify a payment page's id to export only transactions conducted on said page.
+  reason: Listed on the canonical Export Transactions section but absent from the spec. Confirmed against the Paystack test API on 2026-10-08, where it changes the exported rows.
+  docs: https://paystack.com/docs/api/transaction/#export

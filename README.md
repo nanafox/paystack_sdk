@@ -67,14 +67,12 @@ require 'paystack_sdk'
 paystack = PaystackSdk::Client.new(secret_key: "sk_test_xxx")
 
 # Initialize a transaction
-params = {
-  email: "customer@email.com",
-  amount: 2300,  # Amount in the smallest currency unit (kobo for NGN)
-  currency: "NGN"
-}
-
 begin
-  response = paystack.transactions.initiate(params)
+  response = paystack.transactions.initiate(
+    email: "customer@email.com",
+    amount: 2300,  # Amount in the smallest currency unit (kobo for NGN)
+    currency: "NGN"
+  )
 
   if response.success?
     puts "Visit this URL to complete payment: #{response.authorization_url}"
@@ -82,7 +80,7 @@ begin
   else
     puts "Error: #{response.error_message}"
   end
-rescue PaystackSdk::MissingParamError => e
+rescue ArgumentError => e
   puts "Missing required data: #{e.message}"
 rescue PaystackSdk::InvalidFormatError => e
   puts "Invalid data format: #{e.message}"
@@ -125,10 +123,10 @@ The SDK validates your parameters **before** making API calls and throws excepti
 
 ```ruby
 begin
-  # This will throw an exception before making any API call
-  response = paystack.transactions.initiate({amount: 1000}) # Missing required email
-rescue PaystackSdk::MissingParamError => e
-  puts "Fix your data: #{e.message}"
+  # Ruby raises ArgumentError for a missing required keyword, before any API call
+  response = paystack.transactions.initiate(amount: 1000) # Missing required email
+rescue ArgumentError => e
+  puts "Fix your data: #{e.message}" # => "missing keyword: :email"
 end
 ```
 
@@ -137,7 +135,7 @@ end
 All successful API calls return a `Response` object that you can check for success:
 
 ```ruby
-response = paystack.transactions.initiate(valid_params)
+response = paystack.transactions.initiate(**valid_params)
 
 if response.success?
   puts "Transaction created: #{response.authorization_url}"
@@ -183,16 +181,13 @@ The SDK provides comprehensive support for Paystack's Transaction API.
 #### Initialize a Transaction
 
 ```ruby
-# Prepare transaction parameters
-params = {
+# Amount is in the smallest currency unit (e.g., kobo, pesewas, cents)
+response = paystack.transactions.initiate(
   email: "customer@example.com",
-  amount: 10000,  # Amount in the smallest currency unit (e.g., kobo, pesewas, cents)
+  amount: 10000,
   currency: "GHS",
   callback_url: "https://example.com/callback"
-}
-
-# Initialize the transaction
-response = paystack.transactions.initiate(params)
+)
 
 if response.success?
   puts "Transaction initialized successfully!"
@@ -294,7 +289,7 @@ end
 #### List Transactions
 
 ```ruby
-# Get all transactions (default pagination: 50 per page)
+# Get all transactions (Paystack's default pagination: 50 per page)
 response = paystack.transactions.list
 
 # With custom pagination
@@ -308,6 +303,9 @@ response = paystack.transactions.list(
   to: "2025-04-30",
   status: "success"
 )
+
+# Filter by customer (the numeric customer ID, not the CUS_ code)
+response = paystack.transactions.list(customer_id: 12345)
 
 if response.success?
   puts "Total transactions: #{response.count}" # response.size is another way
@@ -335,8 +333,7 @@ end
 
 ```ruby
 # Fetch a specific transaction by ID
-transaction_id = "12345"
-response = paystack.transactions.fetch(transaction_id)
+response = paystack.transactions.fetch(id: 12345)
 
 if response.success?
   transaction = response.data
@@ -360,6 +357,9 @@ end
 # Get transaction volume and success metrics
 response = paystack.transactions.totals
 
+# Within a date range
+response = paystack.transactions.totals(from: "2025-01-01", to: "2025-04-30")
+
 if response.success?
   puts "Total Transactions: #{response.data.total_transactions}"
   puts "Total Volume: #{response.data.total_volume}"
@@ -367,6 +367,31 @@ if response.success?
 else
   puts "Error: #{response.error_message}"
 end
+```
+
+#### Transaction Timeline, Export and Charging
+
+```ruby
+# Timeline of a transaction, by ID or reference
+paystack.transactions.timeline(id: "transaction_reference")
+
+# Export transactions (Paystack returns a download link)
+paystack.transactions.export(from: "2025-01-01", to: "2025-04-30", status: "success", settled: true)
+
+# Charge a returning customer's saved authorization
+paystack.transactions.charge_authorization(
+  email: "customer@example.com",
+  amount: 10000,
+  authorization_code: "AUTH_xxxx"
+)
+
+# Debit part of an amount from a saved authorization
+paystack.transactions.partial_debit(
+  email: "customer@example.com",
+  amount: 5000,
+  authorization_code: "AUTH_xxxx",
+  currency: "GHS"
+)
 ```
 
 ### Customers
@@ -535,7 +560,7 @@ end
 All API requests return a `PaystackSdk::Response` object that provides easy access to the response data.
 
 ```ruby
-response = paystack.transactions.initiate(params)
+response = paystack.transactions.initiate(**params)
 
 # Check if the request was successful
 response.success?  # => true or false
@@ -662,19 +687,19 @@ The SDK includes several specific error classes:
 The SDK validates your input data **before** making API calls and will throw exceptions immediately if required data is missing or incorrectly formatted:
 
 ```ruby
-# Missing required parameter
+# Missing required keyword
 begin
-  paystack.transactions.initiate({amount: 1000}) # Missing email
-rescue PaystackSdk::MissingParamError => e
-  puts e.message # => "Missing required parameter: email"
+  paystack.transactions.initiate(amount: 1000) # Missing email
+rescue ArgumentError => e
+  puts e.message # => "missing keyword: :email"
 end
 
 # Invalid format
 begin
-  paystack.transactions.initiate({
+  paystack.transactions.initiate(
     email: "invalid-email",  # Not a valid email format
     amount: 1000
-  })
+  )
 rescue PaystackSdk::InvalidFormatError => e
   puts e.message # => "Invalid format for Email. Expected format: valid email address"
 end
