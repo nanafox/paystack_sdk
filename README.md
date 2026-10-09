@@ -18,6 +18,7 @@ The `paystack_sdk` gem provides a simple and intuitive interface for interacting
     - [Checking a Payment](#checking-a-payment)
     - [Charging a Saved Card](#charging-a-saved-card)
   - [Charges](#charges)
+    - [Mobile Money in Ghana: Which Networks](#mobile-money-in-ghana-which-networks)
     - [Create a Mobile Money Charge](#create-a-mobile-money-charge)
     - [Create a Charge on Another Channel](#create-a-charge-on-another-channel)
     - [Complete a Charge](#complete-a-charge)
@@ -230,6 +231,12 @@ end
 ### Charges
 
 The Charge API lets you pick the payment channel yourself instead of sending the customer to Checkout: a saved card authorization, a bank account, USSD, mobile money, QR, EFT, Pay with Transfer or Capitec Pay. Many charges need one more step from the customer (a PIN, OTP, phone number, birthday or address) before they complete. See the Paystack docs: [Charge API](https://paystack.com/docs/api/charge/) and [Payment Channels](https://paystack.com/docs/payments/payment-channels/).
+
+#### Mobile Money in Ghana: Which Networks
+
+Paystack lists three Ghana mobile-money providers (`banks.list(country: "ghana", type: "mobile_money")`): `MTN`, `VOD` (shown as Vodafone, now Telecel) and `ATL` (AirtelTigo). The bank list uses uppercase codes; `charges.mobile_money` takes the provider in any case and sends it in lowercase (`mtn`, `vod`, `atl`).
+
+What was checked, against Paystack's test API only: a merchant-started charge of 100 pesewas (GHS) for each of the three providers on Paystack's test number was accepted, came back with `status: "success"` and `gateway_response: "Approved"` immediately, and `check_pending(reference:)` returned the same. **Test mode does not model the payer approving the prompt on their phone, so this does not show which live networks accept a charge you start yourself.** Treat each network as unverified in live mode: start the charge, read `response.status` (`status?(:pay_offline)`, `status?(:send_otp)`, `status?(:pending)` and so on, as Paystack returns them), show `response.display_text` to the payer when there is one, and poll `charges.check_pending(reference:)` or wait for the `charge.success` webhook. Confirm with `transactions.verify(reference:)` before giving value. If a network refuses a merchant-started prompt, fall back to a payment link for that network.
 
 #### Create a Mobile Money Charge
 
