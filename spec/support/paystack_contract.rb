@@ -125,7 +125,12 @@ module PaystackContract
 
     def resolve_query_param(declared, key, name)
       exception = exceptions_for(key, "query").find { |e| e["wire"] == name }
-      param = declared.find { |p| p["name"] == (exception ? exception["spec"] : name) }
+      param = if exception && exception["spec"].nil?
+        # documented by Paystack but absent from the spec: check against the type recorded in the exception
+        {"name" => name, "schema" => {"type" => exception["type"]}}
+      else
+        declared.find { |p| p["name"] == (exception ? exception["spec"] : name) }
+      end
       [param, exception&.fetch("type", nil)]
     end
 

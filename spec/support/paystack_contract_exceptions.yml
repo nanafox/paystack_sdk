@@ -8,7 +8,8 @@
 #   operation: "METHOD /path"  as written in the spec
 #   in:        query | body
 #   wire:      the name the SDK sends (as the canonical docs name it)
-#   spec:      the name the OpenAPI spec uses for the same parameter
+#   spec:      the name the OpenAPI spec uses for the same parameter; null when the spec omits it
+#              (a docs-only parameter, which also needs `type` and `description`)
 #   type:      optional; the type to check the value against when the docs and spec disagree on it
 #   ruby:      optional; the idiomatic Ruby keyword when it is not just the snake_case of `wire`
 #   reason / docs: why, and where it was confirmed

@@ -9,12 +9,15 @@
 #   bin/paystack-spec show METHOD /path     # what the spec says about one operation
 #   bin/paystack-spec update                # refresh the pinned spec from upstream and show what changed
 #   bin/paystack-spec info                  # which upstream commit the pinned spec is
+#   bin/paystack-spec docs-fetch            # download Paystack's docs mirror pages (not committed)
+#   bin/paystack-spec docs-diff [Tag]       # compare those pages with the spec, operation by operation
 #
 # The spec is pinned in spec/fixtures/paystack_openapi.yaml so every command, and CI,
 # works offline and gives the same answer until the pin is deliberately updated.
 #
 # Options:
 #   --spec PATH   use another copy of paystack.yaml instead of the pinned one
+#   --docs DIR    where the docs pages are kept (default: tmp/docs-snapshots/mirror, which is gitignored)
 #
 # The spec gives paths, methods, required fields and enums. It does NOT replace
 # the prose docs (https://paystack.com/docs/api/) for behaviour such as rate
@@ -25,6 +28,7 @@ require "uri"
 require "yaml"
 require "tmpdir"
 require "optparse"
+require "cgi"
 
 SPEC_URL = "https://raw.githubusercontent.com/PaystackOSS/openapi/main/dist/paystack.yaml"
 RESOURCES_GLOB = File.expand_path("../lib/paystack_sdk/resources/*.rb", __dir__)
@@ -35,7 +39,15 @@ HTTP_METHODS = %w[get post put delete patch].freeze
 PATH_PATTERN = /@connection\.(get|post|put|delete)\(\s*"((?:#\{[^}]*\}|[^"])*)"/
 
 spec_path = nil
-OptionParser.new { |o| o.on("--spec PATH") { |v| spec_path = v } }.parse!
+docs_dir = File.expand_path("../tmp/docs-snapshots/mirror", __dir__)
+OptionParser.new { |o|
+  o.on("--spec PATH") { |v| spec_path = v }
+  o.on("--docs DIR") { |v| docs_dir = File.expand_path(v) }
+}.parse!
+
+DOCS_MIRROR = "https://docs-v2.production.paystack.co/docs/api"
+DOCS_NON_REFERENCE = %w[authentication rate-limits pagination errors webhook-events].freeze
+EXCEPTIONS_FILE = File.expand_path("../spec/support/paystack_contract_exceptions.yml", __dir__)
 
 PINNED = File.expand_path("../spec/fixtures/paystack_openapi.yaml", __dir__)
 PINNED_SOURCE = File.expand_path("../spec/fixtures/paystack_openapi.source.yml", __dir__)
@@ -61,7 +73,7 @@ def operations(spec)
   spec["paths"].each_with_object({}) do |(path, item), ops|
     item.each do |verb, op|
       next unless HTTP_METHODS.include?(verb)
-      ops[[verb.upcase, normalize(path)]] = {path: path, op: op}
+      ops[[verb.upcase, normalize(path)]] = {path: path, op: op, shared: item["parameters"] || []}
     end
   end
 end
@@ -98,6 +110,117 @@ def body_schema(spec, op)
   content = resolve(spec, op["requestBody"] || {}).fetch("content", {})
   schema = content.values.first&.fetch("schema", nil)
   schema && flatten(spec, schema)
+end
+
+# --- docs mirror
+
+def docs_slug(tag)
+  tag.downcase.tr(" ", "-")
+end
+
+# One entry per operation on a docs page: method, path and the parameters it lists. The page's
+# "optional" label marks optional parameters; unlabelled ones are required unless they state a default.
+def parse_docs_page(html)
+  html.split(/(?=<h2 id=")/)[1..].to_a.filter_map do |section|
+    text = CGI.unescapeHTML(section.gsub(/<[^>]+>/, " "))
+    verb = text[/-X\s+(GET|POST|PUT|DELETE|PATCH)\b/, 1] or next
+    path = text[%r{https://api\.paystack\.co(/[^\s"']*)}, 1] or next
+    title = CGI.unescapeHTML(section[/<\/svg><\/span><\/a>(.*?)<\/h2>/m, 1].to_s).strip
+    params = []
+    section.split(/(?=<section><h3>)/).each do |part|
+      where = {"Path Parameters" => "path", "Query Parameters" => "query", "Body Parameters" => "body"}[part[/<h3>([^<]+)<\/h3>/, 1]] or next
+      part.scan(/<div class="api-param">(.*?)<\/div><\/div>(?=<div class="api-param">|<\/div><\/section>)/m) do |(block)|
+        name = CGI.unescapeHTML(block[/api-param__name">([^<]*)</, 1].to_s)
+        next if name.empty?
+        params << {in: where, name: name, type: block[/api-param__type">([^<]*)</, 1].to_s.downcase,
+                   required: where == "path" || !(block.include?("api-param__use") || block =~ /not specified|defaults? to|default value/i), use: block[/api-param__use">([^<]*)</, 1]}
+      end
+    end
+    # the docs write path variables as `:id`; the spec as `{id}`
+    {verb: verb, path: path.sub(/\?.*/, "").gsub(%r{/:([A-Za-z_]+)}, '/{\1}'), title: title, params: params}
+  end
+end
+
+TYPE_GROUPS = {"integer" => "integer", "int" => "integer", "number" => "number", "float" => "number", "double" => "number",
+               "string" => "string", "boolean" => "boolean", "bool" => "boolean", "array" => "array", "object" => "object"}.freeze
+
+def type_group(type)
+  TYPE_GROUPS[type.to_s.downcase.strip]
+end
+
+def spec_params(spec, entry)
+  found = []
+  (entry[:shared] + (entry[:op]["parameters"] || [])).each do |param|
+    param = resolve(spec, param)
+    next unless %w[path query].include?(param["in"])
+    found << {in: param["in"], name: param["name"], type: resolve(spec, param["schema"] || {})["type"], required: !!param["required"] || param["in"] == "path"}
+  end
+  if (body = body_schema(spec, entry[:op]))
+    body["properties"].each do |name, prop|
+      found << {in: "body", name: name, type: resolve(spec, prop)["type"], required: body["required"].include?(name)}
+    end
+  end
+  found
+end
+
+def recorded_exceptions
+  @recorded_exceptions ||= YAML.safe_load_file(EXCEPTIONS_FILE)
+end
+
+def recorded?(verb, path, location, name)
+  key = "#{verb} #{path}"
+  recorded_exceptions.any? { |e| e["operation"] == key && e["in"] == location && [e["wire"], e["spec"]].include?(name) }
+end
+
+# The key of the spec operation a docs operation describes. Most match on normalized path; some pages
+# put a sample id in the URL (`/order/12345`), so fall back to matching segment by segment, a spec
+# `{variable}` standing for any docs segment. Unmatched ones keep their own key.
+def match_key(docs_op, ops)
+  key = [docs_op[:verb], normalize(docs_op[:path])]
+  return key if ops.key?(key)
+
+  segments = docs_op[:path].split("/")
+  ops.keys.find do |verb, path|
+    parts = path.split("/")
+    verb == docs_op[:verb] && parts.size == segments.size &&
+      parts.zip(segments).all? { |spec_part, docs_part| spec_part == "{x}" || spec_part == docs_part }
+  end || key
+end
+
+# Returns the findings for one operation: [kind, text, recorded?]
+def diff_operation(verb, spec_path, spec_ps, docs_op)
+  findings = []
+  docs_ps = docs_op[:params]
+  spec_by = spec_ps.group_by { |p| [p[:in], p[:name]] }.transform_values(&:first)
+  docs_by = docs_ps.group_by { |p| [p[:in], p[:name]] }.transform_values(&:first)
+
+  (docs_by.keys - spec_by.keys).each do |loc, name|
+    next if loc == "path"
+    # a path variable renamed in the docs shows up as a name difference, handled below
+    findings << ["docs-only", "#{loc} `#{name}` is in the docs, not the spec", recorded?(verb, spec_path, loc, name)]
+  end
+  (spec_by.keys - docs_by.keys).each do |loc, name|
+    next if loc == "path"
+    findings << ["spec-only", "#{loc} `#{name}` is in the spec, not the docs", recorded?(verb, spec_path, loc, name)]
+  end
+  (docs_by.keys & spec_by.keys).each do |loc, name|
+    d, s = docs_by[[loc, name]], spec_by[[loc, name]]
+    dt, st = type_group(d[:type]), type_group(s[:type])
+    if dt && st && dt != st
+      findings << ["type", "#{loc} `#{name}`: docs say #{d[:type]}, spec says #{s[:type]}", recorded?(verb, spec_path, loc, name)]
+    end
+    # The docs label only optional parameters, so an unlabelled one is read as required, unless its
+    # description gives a default ("If not specified, we use ..."), as on `perPage` and `page`.
+    if d[:required] != s[:required]
+      findings << ["required", "#{loc} `#{name}`: docs say #{d[:required] ? "required" : "optional"}, spec says #{s[:required] ? "required" : "optional"}", recorded?(verb, spec_path, loc, name)]
+    end
+  end
+  docs_path_names = docs_op[:path].scan(/\{([^}]+)\}/).flatten
+  spec_path_names = spec_path.scan(/\{([^}]+)\}/).flatten
+  if docs_path_names != spec_path_names
+    findings << ["path", "path variable is `#{docs_path_names.join(", ")}` in the docs and `#{spec_path_names.join(", ")}` in the spec", false]
+  end
+  findings
 end
 
 spec = load_spec(spec_path)
@@ -152,6 +275,60 @@ when "show"
     params.each { |p| puts format(" %s %-8s %-20s %s", p["required"] ? "*" : " ", p["in"], p["name"], p["description"].to_s.strip.tr("\n", " ")[0, 110]) }
   end
   puts "\nSDK: #{ours[[verb, normalize(path)]] || "not implemented"}"
+when "docs-fetch"
+  require "fileutils"
+  FileUtils.mkdir_p(docs_dir)
+  index = http_get("#{DOCS_MIRROR}/")
+  slugs = index.scan(%r{href="/docs/api/([a-z0-9-]+)/?"}).flatten.uniq - DOCS_NON_REFERENCE
+  slugs.each do |slug|
+    response = Net::HTTP.get_response(URI("#{DOCS_MIRROR}/#{slug}/"))
+    if response.code == "200"
+      File.write(File.join(docs_dir, "#{slug}.html"), response.body)
+      puts format("  %-28s saved (%d KB)", slug, response.body.size / 1024)
+    else
+      puts format("  %-28s skipped (HTTP %s)", slug, response.code)
+    end
+    sleep 1
+  end
+  puts "Saved #{slugs.size} pages to #{docs_dir}. These files are not committed."
+when "docs-diff"
+  only = ARGV.shift&.then { |tag| docs_slug(tag) }
+  files = Dir[File.join(docs_dir, "*.html")].sort.select { |f| only.nil? || File.basename(f, ".html") == only }
+  abort "No docs pages in #{docs_dir}. Run bin/paystack-spec docs-fetch first." if files.empty?
+  totals = Hash.new(0)
+  seen = []
+  files.each do |file|
+    docs_ops = parse_docs_page(File.read(file)).to_h { |o| [match_key(o, ops), o] }
+    lines = []
+    docs_ops.each do |key, docs_op|
+      entry = ops[key]
+      if entry.nil?
+        lines << "  #{key[0]} #{docs_op[:path]}   (#{docs_op[:title]})\n      operation docs-only: the spec has no such operation"
+        totals["operation"] += 1
+        next
+      end
+      seen << key
+      found = diff_operation(key[0], entry[:path], spec_params(spec, entry), docs_op)
+      next if found.empty?
+      lines << "  #{key[0]} #{entry[:path]}   (#{entry[:op]["summary"]})"
+      found.each do |kind, text, known|
+        totals[known ? "recorded" : kind] += 1
+        lines << "      #{kind.ljust(9)} #{text}#{"   [recorded]" if known}"
+      end
+    end
+    puts "#{File.basename(file, ".html")}  (#{docs_ops.size} docs operations)"
+    puts(lines.empty? ? "  no differences" : lines)
+    puts
+  end
+  unless only
+    missing = ops.keys - seen
+    puts "Spec operations on no docs page (#{missing.size})"
+    missing.each { |verb, path| puts "  #{verb} #{ops[[verb, path]][:path]}   (#{ops[[verb, path]][:op]["summary"]})" }
+    totals["operation"] += missing.size
+    puts
+  end
+  puts "Summary: " + (totals.empty? ? "no differences" : totals.sort.map { |k, v| "#{v} #{k}" }.join(", "))
+  puts "Differences are leads, not verdicts. Settle each with the canonical page or a live test-mode probe, then record it in spec/support/paystack_contract_exceptions.yml."
 when "info"
   source = YAML.safe_load_file(PINNED_SOURCE)
   puts "Pinned spec: #{source["repo"]}/#{source["path"]} @ #{source["commit"]} (committed #{source["committed_at"]})"
@@ -183,5 +360,5 @@ when "update"
   (before - after).each { |verb, path| puts "  removed #{verb} #{path}" }
   puts "Review the diff, then run the specs and bin/paystack-spec audit."
 else
-  abort "usage: bin/paystack-spec audit | missing [Tag] | show METHOD /path | info | update   [--spec PATH]"
+  abort "usage: bin/paystack-spec audit | missing [Tag] | show METHOD /path | info | update | docs-fetch | docs-diff [Tag]   [--spec PATH] [--docs DIR]"
 end

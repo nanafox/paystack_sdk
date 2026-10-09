@@ -175,6 +175,12 @@ def parameters_for(entry)
     params << Param.new(keyword: ruby_word(keyword), wire: wire, required: !!p["required"], info: info, description: one_line(p["description"]), location: :query)
   end
 
+  # parameters Paystack documents but the spec omits (exception entries with no `spec`)
+  @exceptions.select { |e| e["operation"] == op_key && e["in"] == "query" && e["spec"].nil? }.each do |e|
+    info = {type: e["type"], format: nil, enum: nil, example: nil, schema: {"type" => e["type"]}}
+    params << Param.new(keyword: ruby_word(e["ruby"] || snake(e["wire"])), wire: e["wire"], required: false, info: info, description: one_line(e["description"]), location: :query)
+  end
+
   body = resolve(entry[:op]["requestBody"] || {}).dig("content", "application/json", "schema")
   if body && resolve(body)["type"] == "array"
     # a JSON array body (bulk charge): one keyword, sent as given. Rename it to suit the operation.
@@ -315,7 +321,7 @@ end
 
 def url_for(entry, params)
   path = entry[:path].dup
-  params.select { |p| p.location == :path }.each { |p| path.sub!("{#{p.wire}}", "\#{escape_path(#{p.keyword})}") }
+  params.select { |p| p.location == :path }.each { |p| path.sub!("{#{p.wire}}", "\#{escape_path(#{p.keyword}, name: \"#{p.keyword}\")}") }
   %("#{path}")
 end
 
