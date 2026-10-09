@@ -89,7 +89,7 @@ module PaystackSdk
     # @example
     # ```ruby
     #   transfers = client.transfers
-    #   response = transfers.create(params)
+    #   response = transfers.create(source: "balance", amount: 100_000, recipient: "RCP_xxx", reference: "payout-2025-0001-ama")
     # ```
     def transfers
       @transfers ||= Resources::Transfers.new(@connection)

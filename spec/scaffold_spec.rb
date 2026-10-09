@@ -397,7 +397,7 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
       expect(transactions).to include("def timeline(")
       expect(transactions).not_to include("def initialize")
       expect(transfers).to include("def create(")
-      expect(transfers).to include("def initiate_bulk(")
+      expect(transfers).to include("def bulk_create(")
     end
 
     it "refuses a method name that would shadow Ruby's own, and says where to rename it" do
