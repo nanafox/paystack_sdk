@@ -159,3 +159,8 @@
 # shared with LIVE mode), so its behaviour is described from the spec and docs only.
 "PUT /integration/payment_session_timeout":
   note: "Changes the payment session timeout of the whole integration (account-wide), and the setting may be shared with LIVE mode even when you call it with a test key (sk_test_). It has not been verified against the live API. Read the current value with `fetch_payment_session_timeout` first, and do not call this to try the API out."
+
+# Direct Debit (integration-wide). Not the same endpoints as the Customer
+# ones under /customer/{id}/directdebit-*.
+"PUT /directdebit/activation-charge":
+  note: "Charges the bank accounts behind the given customers' pending mandates to activate them; in live mode this moves real money. It was not called against the test API while this method was built, so its behaviour is documented, not verified. For one customer's inactive mandate, `customers.direct_debit_activation_charge` takes an `authorization_id` instead."
