@@ -969,6 +969,8 @@ paystack.splits.update(id: 2703655, bearer_type: "subaccount", bearer_subaccount
 paystack.splits.add_subaccount(id: 2703655, subaccount: "ACCT_eg4sob4590pq9vb", share: 20)
 
 paystack.splits.remove_subaccount(id: 2703655, subaccount: "ACCT_eg4sob4590pq9vb")
+```
+
 ### Disputes
 
 Disputes (chargebacks) are filed against your transactions by customers or their banks. Listing and fetching are read-only. `update`, `add_evidence` and `resolve` change a real dispute, so call them only when you mean to answer it.
