@@ -20,6 +20,7 @@ require_relative "resources/payment_requests"
 require_relative "resources/pages"
 require_relative "resources/products"
 require_relative "resources/orders"
+require_relative "resources/storefronts"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -279,6 +280,14 @@ module PaystackSdk
     #  `Orders` resource.
     def orders
       @orders ||= Resources::Orders.new(@connection)
+    end
+
+    # Provides access to the `Storefronts` resource.
+    #
+    # @return [PaystackSdk::Resources::Storefronts] An instance of the
+    #  `Storefronts` resource.
+    def storefronts
+      @storefronts ||= Resources::Storefronts.new(@connection)
     end
 
     private

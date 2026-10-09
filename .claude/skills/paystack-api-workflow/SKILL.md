@@ -90,6 +90,13 @@ It creates `lib/paystack_sdk/resources/<name>.rb` and `spec/resources/<name>_spe
     code: email_or_code   # spec path variable => Ruby keyword
 ```
 
+**Warnings** go in the same hash as `note:`. It becomes a wrapped `@note` in the method's docs, above `@return`, so a hazard (a call that is not what its name says, or reaches live mode from a test key) is written on the method and the file stays regenerable. `publish` on storefronts is the example.
+
+```yaml
+"POST /storefront/{id}/publish":
+  note: "Publishing copies the storefront and its products into LIVE mode, even with a test key."
+```
+
 Check `bin/paystack-spec docs-diff <resource>` for `path` lines, but confirm the name in the docs page's *Path Parameters* table: the cURL samples sometimes use another placeholder.
 
 **Checks it adds on its own,** matching what the SDK has always done: `validate_email!` for `email`, `validate_positive_integer!` for `amount`, `page` and `per_page`, and `validate_reference_format!` for a `reference` you send (skipped when optional and nil; never applied to a reference in the path). Enums come from the spec.

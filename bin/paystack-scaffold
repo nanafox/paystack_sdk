@@ -114,15 +114,30 @@ def snake(name)
   name.to_s.gsub(/([a-z\d])([A-Z])/, '\1_\2').gsub(/[^A-Za-z0-9]+/, "_").downcase.gsub(/\A_+|_+\z/, "")
 end
 
-# An operation's entry in the names file: a method name, or {name: ..., keywords: {path_variable: keyword}}.
-# Returns [method name or nil, {spec path variable => Ruby keyword}].
+# An operation's entry in the names file: a method name, or
+# {name: ..., keywords: {path_variable: keyword}, note: "a warning for the method's docs"}.
+# Returns [method name or nil, {spec path variable => Ruby keyword}, note or nil].
 def names_entry(key)
   entry = @names[key]
-  return [entry, {}] unless entry.is_a?(Hash)
+  return [entry, {}, nil] unless entry.is_a?(Hash)
 
-  unknown = entry.keys - %w[name keywords]
-  abort "#{key}: unknown key(s) #{unknown.join(", ")} in the names file (expected name and keywords)." unless unknown.empty?
-  [entry["name"], entry["keywords"] || {}]
+  unknown = entry.keys - %w[name keywords note]
+  abort "#{key}: unknown key(s) #{unknown.join(", ")} in the names file (expected name, keywords and note)." unless unknown.empty?
+  [entry["name"], entry["keywords"] || {}, entry["note"]]
+end
+
+# A YARD @note, wrapped to fit the comment column.
+def note_lines(text)
+  words = text.to_s.split
+  lines = []
+  words.each do |word|
+    if lines.empty? || lines.last.size + word.size + 1 > 92
+      lines << (lines.empty? ? "@note #{word}" : "  #{word}")
+    else
+      lines.last << " #{word}"
+    end
+  end
+  lines.map { |line| "      # #{line}" }
 end
 
 def ruby_word(name)
@@ -485,6 +500,8 @@ def render_method(entry, tag, name)
     detail += " One of: #{p.info[:enum].join(", ")}." if p.info[:enum]
     out << "      # @param #{p.keyword} [#{ruby_type(p.info)}]#{detail}"
   end
+  _, _, note = names_entry("#{entry[:verb].upcase} #{entry[:path]}")
+  out.concat(note_lines(note)) if note
   out << "      # @return [PaystackSdk::Response] The response from the Paystack API."
   out << "      # @raise [PaystackSdk::Error] If a parameter is invalid or the API request fails."
   out << "      # @see https://paystack.com/docs/api/#{page}/##{anchor}"
