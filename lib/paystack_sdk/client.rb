@@ -26,6 +26,7 @@ require_relative "resources/apple_pay"
 require_relative "resources/integrations"
 require_relative "resources/virtual_terminals"
 require_relative "resources/direct_debits"
+require_relative "resources/terminals"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -333,6 +334,14 @@ module PaystackSdk
     #  `DirectDebits` resource.
     def direct_debits
       @direct_debits ||= Resources::DirectDebits.new(@connection)
+    end
+
+    # Provides access to the `Terminals` resource.
+    #
+    # @return [PaystackSdk::Resources::Terminals] An instance of the
+    #  `Terminals` resource.
+    def terminals
+      @terminals ||= Resources::Terminals.new(@connection)
     end
 
     private

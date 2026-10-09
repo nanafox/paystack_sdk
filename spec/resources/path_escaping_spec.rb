@@ -103,11 +103,17 @@ RSpec.describe "escaping of path segments", contract: false do
     ["virtual_terminals.assign_destination", :post, "/virtual_terminal/", "/destination/assign", ->(c, v) { c.virtual_terminals.assign_destination(code: v, destinations: [{target: "+2341234567890", name: "Desk"}]) }],
     ["virtual_terminals.unassign_destination", :post, "/virtual_terminal/", "/destination/unassign", ->(c, v) { c.virtual_terminals.unassign_destination(code: v, targets: ["+2341234567890"]) }],
     ["virtual_terminals.add_split_code", :put, "/virtual_terminal/", "/split_code", ->(c, v) { c.virtual_terminals.add_split_code(code: v, split_code: "SPL_1") }],
-    ["virtual_terminals.remove_split_code", :delete, "/virtual_terminal/", "/split_code", ->(c, v) { c.virtual_terminals.remove_split_code(code: v, split_code: "SPL_1") }]
+    ["virtual_terminals.remove_split_code", :delete, "/virtual_terminal/", "/split_code", ->(c, v) { c.virtual_terminals.remove_split_code(code: v, split_code: "SPL_1") }],
+    ["terminals.send_event", :post, "/terminal/", "/event", ->(c, v) { c.terminals.send_event(terminal_id: v, type: "invoice", action: "view") }],
+    ["terminals.fetch_event_status (terminal)", :get, "/terminal/", "/event/EVT1", ->(c, v) { c.terminals.fetch_event_status(terminal_id: v, event_id: "EVT1") }],
+    ["terminals.fetch_event_status (event)", :get, "/terminal/T1/event/", "", ->(c, v) { c.terminals.fetch_event_status(terminal_id: "T1", event_id: v) }],
+    ["terminals.fetch_status", :get, "/terminal/", "/presence", ->(c, v) { c.terminals.fetch_status(terminal_id: v) }],
+    ["terminals.fetch", :get, "/terminal/", "", ->(c, v) { c.terminals.fetch(terminal_id: v) }],
+    ["terminals.update", :put, "/terminal/", "", ->(c, v) { c.terminals.update(terminal_id: v, address: "Accra") }]
   ].freeze
 
   it "covers every method that puts a caller's value in a path" do
-    expect(calls.size).to eq(74)
+    expect(calls.size).to eq(80)
   end
 
   calls.each do |description, verb, before, after, call|
