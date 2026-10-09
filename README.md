@@ -94,14 +94,12 @@ rescue PaystackSdk::InvalidFormatError => e
 end
 
 # Create a customer
-customer_params = {
-  email: "customer@email.com",
-  first_name: "John",
-  last_name: "Doe"
-}
-
 begin
-  customer_response = paystack.customers.create(customer_params)
+  customer_response = paystack.customers.create(
+    email: "customer@email.com",
+    first_name: "John",
+    last_name: "Doe"
+  )
 
   if customer_response.success?
     puts "Customer created: #{customer_response.data.customer_code}"
@@ -445,21 +443,18 @@ paystack.transactions.partial_debit(
 
 ### Customers
 
-The SDK provides comprehensive support for Paystack's Customer API, allowing you to manage customer records and their associated data.
+The SDK provides comprehensive support for Paystack's Customer API, allowing you to manage customer records, their identity validation, risk actions and authorizations (including Direct Debit mandates).
 
 #### Create a Customer
 
 ```ruby
-# Prepare customer parameters
-params = {
+response = paystack.customers.create(
   email: "customer@example.com",
   first_name: "John",
   last_name: "Doe",
-  phone: "+2348123456789"
-}
-
-# Create the customer
-response = paystack.customers.create(params)
+  phone: "+2348123456789",
+  metadata: {plan: "gold"} # a Hash; Paystack rejects a JSON string here
+)
 
 if response.success?
   puts "Customer created successfully!"
@@ -471,10 +466,12 @@ else
 end
 ```
 
+`first_name`, `last_name` and `phone` are optional, except for customers you will assign a Dedicated Virtual Account to in some business categories (see Paystack's docs).
+
 #### List Customers
 
 ```ruby
-# Get all customers (default pagination: 50 per page)
+# Get all customers (Paystack's default pagination: 50 per page)
 response = paystack.customers.list
 
 # With custom pagination
@@ -488,8 +485,12 @@ response = paystack.customers.list(
   to: "2025-06-10"
 )
 
+# Cursor pagination: the cursors come back in response.meta
+response = paystack.customers.list(use_cursor: true, per_page: 20)
+response = paystack.customers.list(use_cursor: true, per_page: 20, next_cursor: response.meta.next)
+
 if response.success?
-  puts "Total customers: #{response.data.size}"
+  puts "Customers on this page: #{response.data.size}"
 
   response.data.each do |customer|
     puts "Code: #{customer.customer_code}"
@@ -506,11 +507,10 @@ end
 
 ```ruby
 # Fetch by customer code
-customer_code = "CUS_xr58yrr2ujlft9k"
-response = paystack.customers.fetch(customer_code)
+response = paystack.customers.fetch(code: "CUS_xr58yrr2ujlft9k")
 
-# Or fetch by email
-response = paystack.customers.fetch("customer@example.com")
+# Or fetch by email (Paystack accepts either in the same place)
+response = paystack.customers.fetch(code: "customer@example.com")
 
 if response.success?
   customer = response.data
@@ -527,14 +527,12 @@ end
 #### Update a Customer
 
 ```ruby
-customer_code = "CUS_xr58yrr2ujlft9k"
-update_params = {
+response = paystack.customers.update(
+  code: "CUS_xr58yrr2ujlft9k",
   first_name: "Jane",
   last_name: "Smith",
   phone: "+2348987654321"
-}
-
-response = paystack.customers.update(customer_code, update_params)
+)
 
 if response.success?
   puts "Customer updated successfully!"
@@ -546,19 +544,19 @@ end
 
 #### Validate a Customer
 
+Paystack only supports `type: "bank_account"` for now, and requires every keyword below; `middle_name` and `value` are optional. Paystack answers `202` and completes the validation asynchronously.
+
 ```ruby
-customer_code = "CUS_xr58yrr2ujlft9k"
-validation_params = {
-  country: "NG",
+response = paystack.customers.validate(
+  code: "CUS_xr58yrr2ujlft9k",
+  first_name: "John",
+  last_name: "Doe",
   type: "bank_account",
-  account_number: "0123456789",
+  country: "NG",
   bvn: "20012345677",
   bank_code: "007",
-  first_name: "John",
-  last_name: "Doe"
-}
-
-response = paystack.customers.validate(customer_code, validation_params)
+  account_number: "0123456789"
+)
 
 if response.success?
   puts "Customer validation initiated: #{response.message}"
@@ -567,15 +565,14 @@ else
 end
 ```
 
-#### Set Risk Action
+#### Set Risk Action (Whitelist/Blacklist)
 
 ```ruby
-params = {
+# customer: the customer code or email address
+response = paystack.customers.set_risk_action(
   customer: "CUS_xr58yrr2ujlft9k",
-  risk_action: "allow"  # Options: "default", "allow", "deny"
-}
-
-response = paystack.customers.set_risk_action(params)
+  risk_action: "allow" # "allow" to whitelist, "deny" to blacklist, "default" to reset
+)
 
 if response.success?
   puts "Risk action set successfully!"
@@ -586,14 +583,35 @@ else
 end
 ```
 
-#### Deactivate Authorization
+#### Authorizations and Direct Debit
 
 ```ruby
-params = {
-  authorization_code: "AUTH_72btv547"
-}
+# Start creating a reusable authorization (direct_debit is the only channel for now)
+response = paystack.customers.initialize_authorization(
+  email: "customer@example.com",
+  channel: "direct_debit",
+  callback_url: "https://example.com/callback"
+)
+reference = response.data.reference # send the customer to response.data.redirect_url
 
-response = paystack.customers.deactivate_authorization(params)
+# Check the authorization's status
+paystack.customers.verify_authorization(reference: reference)
+
+# Link a bank account to an existing customer for Direct Debit (id is the numeric customer ID)
+paystack.customers.initialize_direct_debit(
+  id: 12345,
+  account: {number: "0123456789", bank_code: "058"},
+  address: {street: "Some Where", city: "Ikeja", state: "Lagos"}
+)
+
+# The customer's Direct Debit mandates
+paystack.customers.fetch_mandate_authorizations(id: 12345)
+
+# Trigger an activation charge on an inactive mandate
+paystack.customers.direct_debit_activation_charge(id: 12345, authorization_id: 1069309917)
+
+# Deactivate an authorization (any channel)
+response = paystack.customers.deactivate_authorization(authorization_code: "AUTH_72btv547")
 
 if response.success?
   puts "Authorization deactivated: #{response.message}"
@@ -841,12 +859,12 @@ end
 
 # Invalid value
 begin
-  paystack.customers.set_risk_action({
+  paystack.customers.set_risk_action(
     customer: "CUS_123",
     risk_action: "invalid_action"  # Not in allowed values
-  })
+  )
 rescue PaystackSdk::InvalidValueError => e
-  puts e.message # => "Invalid value for risk_action: must be one of [default, allow, deny]"
+  puts e.message # => "Invalid value for risk_action: must be one of: allow, deny, default"
 end
 ```
 
@@ -998,7 +1016,7 @@ Tests also validate specific error types to ensure proper exception handling:
 
 ```ruby
 # Testing specific error types
-expect { customers.set_risk_action(invalid_params) }
+expect { customers.set_risk_action(customer: "CUS_123", risk_action: "block") }
   .to raise_error(PaystackSdk::InvalidValueError, /risk_action/i)
 ```
 

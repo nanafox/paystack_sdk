@@ -211,3 +211,37 @@
   description: The Capitec Pay account holder (identifier_key, one of CELLPHONE, IDNUMBER or ACCOUNTNUMBER, and identifier_value); South Africa only.
   reason: Listed on the canonical Create Charge section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where a charge with only a capitec_pay object is refused with "Integration is not eligible for Capitec Pay" instead of for lacking a channel object.
   docs: https://paystack.com/docs/api/charge/#create
+
+- operation: "GET /customer"
+  in: query
+  wire: perPage
+  spec: perPage
+  type: integer
+  reason: Type only. Canonical docs list perPage as an Integer; the spec types it as a string. Confirmed against the Paystack test API on 2026-10-09, where perPage=2 returns two customers and meta.perPage 2.
+  docs: https://paystack.com/docs/api/customer/#list
+
+- operation: "GET /customer"
+  in: query
+  wire: page
+  spec: page
+  type: integer
+  reason: Type only. Canonical docs list page as an Integer; the spec types it as a string. Confirmed against the Paystack test API on 2026-10-09, where page=2 returns the next set and meta.page 2.
+  docs: https://paystack.com/docs/api/customer/#list
+
+- operation: "POST /customer"
+  in: body
+  wire: metadata
+  spec: metadata
+  type: object
+  description: A set of key/value pairs that you can attach to the customer.
+  reason: Canonical docs list metadata as an Object; the spec says stringified JSON. Confirmed against the Paystack test API on 2026-10-09, which rejects a JSON string with 400 "\"metadata\" must be of type object" and stores an object as given.
+  docs: https://paystack.com/docs/api/customer/#create
+
+- operation: "PUT /customer/{code}"
+  in: body
+  wire: metadata
+  spec: metadata
+  type: object
+  description: A set of key/value pairs that you can attach to the customer.
+  reason: Canonical docs list metadata as an Object; the spec says stringified JSON. Confirmed against the Paystack test API on 2026-10-09, which rejects a JSON string with 400 "\"metadata\" must be of type object".
+  docs: https://paystack.com/docs/api/customer/#update

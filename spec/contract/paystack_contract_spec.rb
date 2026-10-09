@@ -97,8 +97,14 @@ RSpec.describe PaystackContract, contract: false do
     end
 
     it "catches an object sent where the spec wants stringified JSON" do
-      expect(check(:put, "/customer/CUS_1", body: {metadata: {a: 1}}))
+      body = {email: "a@b.co", amount: 1, authorization_code: "AUTH_1", metadata: {a: 1}}
+      expect(check(:post, "/transaction/charge_authorization", body: body))
         .to contain_exactly(match(/\/metadata.*not a string/))
+    end
+
+    it "accepts a body field the exceptions file records as differing from the spec" do
+      # customer metadata: the spec says stringified JSON, Paystack requires an object
+      expect(check(:put, "/customer/CUS_1", body: {metadata: {a: 1}})).to eq([])
     end
 
     it "checks nested objects the spec describes" do
