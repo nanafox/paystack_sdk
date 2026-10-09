@@ -9,6 +9,7 @@ require_relative "resources/charges"
 require_relative "resources/miscellaneous"
 require_relative "resources/refunds"
 require_relative "resources/settlements"
+require_relative "resources/splits"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -180,6 +181,14 @@ module PaystackSdk
     #  `Settlements` resource.
     def settlements
       @settlements ||= Resources::Settlements.new(@connection)
+    end
+
+    # Provides access to the `Splits` resource.
+    #
+    # @return [PaystackSdk::Resources::Splits] An instance of the
+    #  `Splits` resource.
+    def splits
+      @splits ||= Resources::Splits.new(@connection)
     end
 
     private

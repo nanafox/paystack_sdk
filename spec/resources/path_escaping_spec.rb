@@ -42,11 +42,15 @@ RSpec.describe "escaping of path segments", contract: false do
     ["refunds.retry_with_customer_details", :post, "/refund/retry_with_customer_details/", "", lambda { |c, v|
       c.refunds.retry_with_customer_details(id: v, refund_account_details: {currency: "GHS", account_number: "0123456789", bank_id: "1"})
     }],
-    ["settlements.transactions", :get, "/settlement/", "/transactions", ->(c, v) { c.settlements.transactions(id: v) }]
+    ["settlements.transactions", :get, "/settlement/", "/transactions", ->(c, v) { c.settlements.transactions(id: v) }],
+    ["splits.fetch", :get, "/split/", "", ->(c, v) { c.splits.fetch(id: v) }],
+    ["splits.update", :put, "/split/", "", ->(c, v) { c.splits.update(id: v, active: false) }],
+    ["splits.add_subaccount", :post, "/split/", "/subaccount/add", ->(c, v) { c.splits.add_subaccount(id: v, subaccount: "ACCT_1", share: 20) }],
+    ["splits.remove_subaccount", :post, "/split/", "/subaccount/remove", ->(c, v) { c.splits.remove_subaccount(id: v, subaccount: "ACCT_1") }]
   ].freeze
 
   it "covers every method that puts a caller's value in a path" do
-    expect(calls.size).to eq(19)
+    expect(calls.size).to eq(23)
   end
 
   calls.each do |description, verb, before, after, call|

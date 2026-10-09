@@ -219,7 +219,8 @@ def parameters_for(entry)
       info = describe_schema(prop)
       info[:type] = exc["type"] if exc && exc["type"]
       description = one_line((exc && exc["description"]) || prop["description"])
-      params << Param.new(keyword: ruby_word((exc && exc["ruby"]) || snake(wire)), wire: wire, required: flat["required"].include?(name), info: info, description: description, location: :body)
+      required = flat["required"].include?(name) || !!(exc && exc["required"])
+      params << Param.new(keyword: ruby_word((exc && exc["ruby"]) || snake(wire)), wire: wire, required: required, info: info, description: description, location: :body)
     end
 
     # body fields Paystack documents but the spec omits (exception entries with no `spec`)
