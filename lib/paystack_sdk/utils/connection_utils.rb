@@ -92,7 +92,7 @@ module PaystackSdk
         retry_non_idempotent: false)
         validate_connection_options!(timeout:, open_timeout:, max_retries:, retry_interval:)
 
-        Faraday.new(url: BASE_URL, request: {timeout:, open_timeout:}) do |conn|
+        connection = Faraday.new(url: BASE_URL, request: {timeout:, open_timeout:}) do |conn|
           conn.use Middleware::TransportErrors
           if max_retries > 0
             conn.request :retry, retry_options(max_retries, retry_interval, retry_non_idempotent)
@@ -104,9 +104,20 @@ module PaystackSdk
           conn.headers["User-Agent"] = "paystack_sdk/#{PaystackSdk::VERSION}"
           conn.adapter Faraday.default_adapter
         end
+        redact_secret_key(connection)
       end
 
       private
+
+      # Faraday's default `inspect` prints the headers, and so the secret key. Replace it, on the
+      # connection and on its headers, so logging or `pp` of either never writes the key out.
+      def redact_secret_key(connection)
+        connection.define_singleton_method(:inspect) { "#<#{self.class.name} #{url_prefix}>" }
+        connection.headers.define_singleton_method(:inspect) do
+          to_h.merge("Authorization" => "[REDACTED]").inspect
+        end
+        connection
+      end
 
       def validate_connection_options!(timeout:, open_timeout:, max_retries:, retry_interval:)
         {timeout:, open_timeout:}.each do |name, value|
