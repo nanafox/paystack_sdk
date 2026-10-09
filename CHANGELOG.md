@@ -5,6 +5,7 @@
 ### Added
 
 - `Balances` (`client.balances`): `fetch` and `ledger(per_page:, page:, from:, to:)`, generated from Paystack's OpenAPI spec and read-only (GET). `fetch` returns one entry per currency with the balance in the currency's subunit (pesewas for GHS). Paystack's docs have no Balance page; the two operations sit on the Transfers Control page and the behaviour was confirmed against the test API.
+- `Subscriptions` (`client.subscriptions`): `create`, `list`, `fetch(id_or_code:)`, `enable(code:, token:)`, `disable(code:, token:)`, `generate_update_link(code:)` and `send_update_link(code:)`, generated from Paystack's OpenAPI spec. `list` filters by `plan_id:` and `customer_id:` (sent as `plan` and `customer`): the test API matches numeric IDs only. `start_date` is checked as ISO 8601 before sending, since the test API refuses an invalid one but still creates the subscription.
 
 ## [0.2.0] - 2026-10-09
 

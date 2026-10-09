@@ -14,6 +14,7 @@ require_relative "resources/disputes"
 require_relative "resources/subaccounts"
 require_relative "resources/balances"
 require_relative "resources/plans"
+require_relative "resources/subscriptions"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -225,6 +226,14 @@ module PaystackSdk
     #  `Plans` resource.
     def plans
       @plans ||= Resources::Plans.new(@connection)
+    end
+
+    # Provides access to the `Subscriptions` resource.
+    #
+    # @return [PaystackSdk::Resources::Subscriptions] An instance of the
+    #  `Subscriptions` resource.
+    def subscriptions
+      @subscriptions ||= Resources::Subscriptions.new(@connection)
     end
 
     private
