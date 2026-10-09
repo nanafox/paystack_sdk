@@ -50,6 +50,13 @@
   reason: Canonical docs list terminalid; the spec says terminal_id.
   docs: https://paystack.com/docs/api/transaction/#list
 
+- operation: "GET /transferrecipient"
+  in: query
+  wire: perPage
+  spec: per_page
+  reason: Canonical docs list perPage on List Transfer Recipients; the spec says per_page. Both names change the page size on the Paystack test API (confirmed 2026-10-09 with three recipients, perPage=1 and per_page=1 each returned one record and pageCount 3), so the docs name is sent.
+  docs: https://paystack.com/docs/api/transfer-recipient/#list
+
 - operation: "GET /transfer"
   in: query
   wire: perPage
