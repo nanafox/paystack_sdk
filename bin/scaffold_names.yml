@@ -102,3 +102,12 @@
 "POST /paymentrequest/archive/{id}":
   keywords:
     id: id_or_code
+
+# Pages. The docs name the path variable id_or_slug on Fetch and Update (both accept the numeric ID
+# or the slug on the test API) and id on Add Products (the ID only).
+"GET /page/{id}":
+  keywords:
+    id: id_or_slug
+"PUT /page/{id}":
+  keywords:
+    id: id_or_slug
