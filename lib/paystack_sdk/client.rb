@@ -344,6 +344,15 @@ module PaystackSdk
       @terminals ||= Resources::Terminals.new(@connection)
     end
 
+    # A short description that never includes the secret key. Ruby's default `inspect` prints every
+    # instance variable, and the connection holds the key in its `Authorization` header, so logging,
+    # `pp`, an error page or an error tracker would otherwise write the key out.
+    #
+    # @return [String]
+    def inspect
+      "#<#{self.class.name}>"
+    end
+
     private
 
     # The secret key a connection sends, read from its Authorization header.

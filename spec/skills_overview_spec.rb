@@ -15,7 +15,7 @@ RSpec.describe "what paystack-sdk-overview says", contract: false do
   it "lists every resource accessor the client has" do
     text = File.read(File.join(PaystackSdk::Skills::SOURCE_DIR, "paystack-sdk-overview", "SKILL.md"))
     named = text[/Each Paystack resource is a method on the client: (.*?)\./m, 1].scan(/`(\w+)`/).flatten
-    accessors = (PaystackSdk::Client.public_instance_methods(false) - [:live?, :connection]).map(&:to_s)
+    accessors = (PaystackSdk::Client.public_instance_methods(false) - [:live?, :connection, :inspect]).map(&:to_s)
 
     expect(named.sort).to eq(accessors.sort)
   end
