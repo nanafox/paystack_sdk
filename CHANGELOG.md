@@ -4,6 +4,7 @@
 
 ### Added
 
+- Skills `paystack-sdk-charge-statuses` (what each charge `status` means, what to show the payer, which `charges.*` call comes next, and why `success?` is not "the charge worked"; the flows were reproduced on the test API with Paystack's test cards) and `paystack-sdk-mobile-money` (Ghana providers and codes, the phone number form, the 180-second approval window, how the result arrives, and what test mode does not prove). Specs run what they say.
 - AI skills for Claude Code, shipped in the gem and installed with `paystack_sdk skills install` (any Ruby project) or `rails generate paystack_sdk:skills` (Rails) into `.claude/skills/`. The first skill is `paystack-sdk-overview`. Installing is idempotent, writes only `paystack-sdk-<topic>` folders marked with `.paystack_sdk.json`, never overwrites a folder it did not install (`--force` to replace), removes only its own stale folders, stamps each `SKILL.md` with the gem version, and supports `--dir`, `--global` and `--dry-run`. Also `skills list`, `skills path` and `skills uninstall`.
 - The `paystack_sdk` executable (`exe/paystack_sdk`); it handles the skills and `version` and does not load Faraday.
 

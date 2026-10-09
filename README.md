@@ -133,7 +133,7 @@ bin/rails generate paystack_sdk:skills
 - **Version-stamped.** Each installed `SKILL.md` records the gem version in its frontmatter (`metadata.gem_version`).
 - Options: `--dir DIR` (another directory), `--global` (`~/.claude/skills`), `--dry-run` (change nothing; `rails generate ... --pretend` in Rails). Other commands: `paystack_sdk skills list`, `skills path` (where the skills live inside the gem, for agents that read files directly), `skills uninstall`, `paystack_sdk version`.
 
-Skills available: `paystack-sdk-overview` (client setup, conventions, reading a `Response`, what raises, retries, the rules that prevent most bugs).
+Run `paystack_sdk skills list` for the skills in your installed version and when each one applies. Each is a `paystack-sdk-<topic>` folder; an agent picks them from their descriptions.
 
 ## Installation
 
