@@ -763,7 +763,13 @@ def wire_client(root, tag, dry_run:)
   if source.match?(/^\s+def #{file}\b/)
     report("identical", shown, "client.#{file}")
   else
-    source = source.sub(/\n  end\nend\n\z/, "\n#{client_accessor(file, klass)}  end\nend\n")
+    accessor = client_accessor(file, klass)
+    # Public accessors go above Client's `private` section, not after it
+    source = if source.include?("\n    private\n")
+      source.sub("\n    private\n", "#{accessor}\n    private\n")
+    else
+      source.sub(/\n  end\nend\n\z/, "\n#{accessor}  end\nend\n")
+    end
     report("insert", shown, "client.#{file}")
     changed = true
   end

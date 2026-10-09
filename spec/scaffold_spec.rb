@@ -177,6 +177,15 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
       expect(client).to include("def storefronts\n      @storefronts ||= Resources::Storefronts.new(@connection)\n    end")
     end
 
+    it "puts the accessor above Client's private section, so it stays public" do
+      in_root("Storefront")
+
+      client = File.read(path("lib/paystack_sdk/client.rb"))
+
+      expect(client.index("def storefronts")).to be < client.index("\n    private\n")
+      expect(valid_ruby?(client)).to be(true)
+    end
+
     it "with --dry-run says what it would do and writes nothing" do
       before = File.read(path("lib/paystack_sdk/client.rb"))
       stdout, _, status = in_root("Storefront", "--dry-run")
