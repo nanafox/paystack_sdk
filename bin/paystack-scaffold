@@ -426,15 +426,28 @@ end
 # Where Paystack's docs describe an operation, from the docs pages saved by `bin/paystack-spec
 # docs-fetch` (gitignored): {[VERB, segments] => [page, anchor]}. Empty when none are saved.
 def docs_index
-  @docs_index ||= Dir[File.join(@docs_dir, "*.html")].sort.each_with_object({}) do |file, index|
+  return @docs_index if @docs_index
+
+  sections = Dir[File.join(@docs_dir, "*.html")].sort.flat_map do |file|
     page = File.basename(file, ".html")
-    File.read(file).split(/(?=<h2 id=")/).select { |part| part.start_with?(%(<h2 id=")) }.each do |section|
-      text = CGI.unescapeHTML(section.gsub(/<[^>]+>/, " "))
-      verb = text[/-X\s+(GET|POST|PUT|DELETE|PATCH)\b/, 1] or next
-      path = text[%r{https://api\.paystack\.co(/[^\s"']*)}, 1] or next
-      index[[verb, path.sub(/\?.*/, "").split("/")]] ||= [page, section[/<h2 id="([^"]+)"/, 1]]
+    File.read(file).split(/(?=<h2 id=")/).select { |part| part.start_with?(%(<h2 id=")) }.map do |section|
+      [CGI.unescapeHTML(section.gsub(/<[^>]+>/, " ")), [page, section[/<h2 id="([^"]+)"/, 1]]]
     end
   end
+  @docs_index = {}
+  sections.each do |text, anchor|
+    verb = text[/-X\s+(GET|POST|PUT|DELETE|PATCH)\b/, 1] or next
+    path = text[%r{https://api\.paystack\.co(/[^\s"']*)}, 1] or next
+    @docs_index[[verb, path.sub(/\?.*/, "").split("/")]] ||= anchor
+  end
+  # Then the endpoint line above each sample ("POST /dedicated_account/split", "DEL /..."), for a
+  # section whose cURL sample calls another path. Added after every cURL entry, so none is displaced.
+  sections.each do |text, anchor|
+    match = text.match(%r{\s(GET|POST|PUT|DEL(?:ETE)?|PATCH)\s+(/[^\s?]*)}) or next
+    verb, path = match.captures
+    @docs_index[[verb.sub(/\ADEL\z/, "DELETE"), path.split("/")]] ||= anchor
+  end
+  @docs_index
 end
 
 # The docs page and anchor for an operation, or nil when no docs page is saved or it is not on one.

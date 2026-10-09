@@ -66,3 +66,13 @@
 "GET /subscription/{code}":
   keywords:
     code: id_or_code
+
+# "Fetch Dedicated Account" and "Deactivate Dedicated Account": the docs name the path variable dedicated_account_id.
+"GET /dedicated_account/{id}":
+  keywords:
+    id: dedicated_account_id
+"DELETE /dedicated_account/{id}":
+  keywords:
+    id: dedicated_account_id
+# "Split Dedicated Account Transaction": it adds a split to an account (docs anchor #add-split); the pair of remove_split.
+"POST /dedicated_account/split": add_split

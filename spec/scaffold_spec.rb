@@ -108,6 +108,29 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
       FileUtils.remove_entry(docs)
     end
 
+    it "falls back to the endpoint line when a section's cURL sample calls another path" do
+      docs = Dir.mktmpdir("docs")
+      File.write(File.join(docs, "dedicated-virtual-account.html"), <<~HTML)
+        <h2 id="create"><a href="#create"><span></span></a>Create Dedicated Virtual Account </h2>
+        <p>POST /dedicated_account</p>
+        <pre>curl "https://api.paystack.co/dedicated_account" -X POST</pre>
+        <h2 id="add-split"><a href="#add-split"><span></span></a>Split Dedicated Account Transaction </h2>
+        <p>POST /dedicated_account/split</p>
+        <pre>curl "https://api.paystack.co/dedicated_account" -X POST</pre>
+        <h2 id="remove-split"><a href="#remove-split"><span></span></a>Remove Split </h2>
+        <p>DEL /dedicated_account/split</p>
+        <pre>curl "https://api.paystack.co/dedicated_account/split" -X DELETE</pre>
+      HTML
+
+      stdout, = scaffold("Dedicated Virtual Account", "--print", "--docs", docs)
+
+      expect(stdout).to include("# @see https://paystack.com/docs/api/dedicated-virtual-account/#create\n")
+      expect(stdout).to include("# @see https://paystack.com/docs/api/dedicated-virtual-account/#add-split\n")
+      expect(stdout).to include("# @see https://paystack.com/docs/api/dedicated-virtual-account/#remove-split\n")
+    ensure
+      FileUtils.remove_entry(docs)
+    end
+
     it "wraps long signatures and builds the wire hash in a named local" do
       stdout, = scaffold("Subaccount", "--print")
 
@@ -175,6 +198,7 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
       expect(valid_ruby?(client)).to be(true)
       expect(client).to include('require_relative "resources/storefronts"')
       expect(client).to include("def storefronts\n      @storefronts ||= Resources::Storefronts.new(@connection)\n    end")
+      expect(client.index("def storefronts")).to be < client.index("\n    private\n")
     end
 
     it "puts the accessor above Client's private section, so it stays public" do
