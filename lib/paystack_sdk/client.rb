@@ -7,6 +7,7 @@ require_relative "resources/transfers"
 require_relative "resources/banks"
 require_relative "resources/charges"
 require_relative "resources/miscellaneous"
+require_relative "resources/refunds"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -162,6 +163,14 @@ module PaystackSdk
     # ```
     def miscellaneous
       @miscellaneous ||= Resources::Miscellaneous.new(@connection)
+    end
+
+    # Provides access to the `Refunds` resource.
+    #
+    # @return [PaystackSdk::Resources::Refunds] An instance of the
+    #  `Refunds` resource.
+    def refunds
+      @refunds ||= Resources::Refunds.new(@connection)
     end
 
     private

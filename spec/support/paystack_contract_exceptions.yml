@@ -245,3 +245,21 @@
   description: A set of key/value pairs that you can attach to the customer.
   reason: Canonical docs list metadata as an Object; the spec says stringified JSON. Confirmed against the Paystack test API on 2026-10-09, which rejects a JSON string with 400 "\"metadata\" must be of type object".
   docs: https://paystack.com/docs/api/customer/#update
+
+- operation: "POST /refund"
+  in: body
+  wire: transaction
+  spec: transaction
+  description: The reference or ID of a previously completed transaction.
+  reason: The spec says transaction is a reference string; the canonical Create Refund section says "Transaction reference or id" and its cURL sample sends an integer. Confirmed against the Paystack test API on 2026-10-09, where a reference, a numeric ID sent as a JSON integer and the same ID sent as a string all resolve the transaction (400 "Refund amount exceeds transaction amount" for an over-limit amount, against 400 "Transaction not found" for unknown values), and a full refund created with {"transaction":<integer id>} succeeded.
+  docs: https://paystack.com/docs/api/refund/#create
+
+- operation: "GET /refund"
+  in: query
+  wire: transaction
+  spec: null
+  type: integer
+  ruby: transaction_id
+  description: The ID of the refunded transaction.
+  reason: Listed on the canonical List Refunds section ("The transaction ID of the refunded transaction") but absent from the spec. Confirmed against the Paystack test API on 2026-10-09 with refunds on two transactions, where transaction=<id> returned only that transaction's refund and transaction=<reference> returned none. The Ruby keyword is transaction_id because it takes the numeric ID, not a reference.
+  docs: https://paystack.com/docs/api/refund/#list
