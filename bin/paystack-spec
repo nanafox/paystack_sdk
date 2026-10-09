@@ -121,7 +121,7 @@ end
 # One entry per operation on a docs page: method, path and the parameters it lists. The page's
 # "optional" label marks optional parameters; unlabelled ones are required unless they state a default.
 def parse_docs_page(html)
-  html.split(/(?=<h2 id=")/)[1..].to_a.filter_map do |section|
+  html.split(/(?=<h2 id=")/).select { |part| part.start_with?(%(<h2 id=")) }.filter_map do |section|
     text = CGI.unescapeHTML(section.gsub(/<[^>]+>/, " "))
     verb = text[/-X\s+(GET|POST|PUT|DELETE|PATCH)\b/, 1] or next
     path = text[%r{https://api\.paystack\.co(/[^\s"']*)}, 1] or next
