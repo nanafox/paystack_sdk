@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `Balances` (`client.balances`): `fetch` and `ledger(per_page:, page:, from:, to:)`, generated from Paystack's OpenAPI spec and read-only (GET). `fetch` returns one entry per currency with the balance in the currency's subunit (pesewas for GHS). Paystack's docs have no Balance page; the two operations sit on the Transfers Control page and the behaviour was confirmed against the test API.
+
 ## [0.2.0] - 2026-10-09
 
 ### Breaking

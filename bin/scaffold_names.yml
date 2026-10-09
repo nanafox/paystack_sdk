@@ -52,3 +52,6 @@
 "PUT /subaccount/{code}":
   keywords:
     code: id_or_code
+
+# "Fetch Balance Ledger": the docs call it "Fetch Balance Ledger"; the SDK method is `ledger` (Balances#ledger).
+"GET /balance/ledger": ledger
