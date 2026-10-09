@@ -10,9 +10,15 @@
   - `list`, `totals` and `export` take named filters (`from`, `to`, `status`, `customer_id`, `settlement`, ...) instead of `**params`, so a misspelt filter now raises `ArgumentError`. `list` no longer defaults `per_page: 50, page: 1`; Paystack's own defaults apply.
   - The numeric customer filter on `list` and `export` is `customer_id:` (it sends Paystack's `customer`).
 
+- `Banks` is regenerated from Paystack's OpenAPI spec, `Miscellaneous` is new, and `Verification` (`client.verification`) is removed. All take keyword arguments.
+  - `verification.resolve_account(account_number:, bank_code:)` is now `banks.resolve_account_number(account_number:, bank_code:)`.
+  - `verification.validate_account(hash)` is now `banks.validate_account(account_name:, account_number:, account_type:, bank_code:, country_code:, document_type:, document_number: nil)`.
+  - `verification.resolve_card_bin(bin)` is now `miscellaneous.resolve_card_bin(bin:)`. New: `miscellaneous.list_countries` and `miscellaneous.list_states(country:)`.
+  - `banks.list` takes named filters instead of a hash (`per_page:` is sent as `perPage`, `next_cursor:` as `next`) and now accepts every filter Paystack documents (`country`, `type`, `gateway`, `use_cursor`, ...). Its `type` enum uses `ghipss` (the spec's `ghipps` is a typo), and `currency` still accepts `USD`.
+
 ### Fixed
 
-- Values placed in URL paths (references, codes, ids, card BINs) are now escaped, and `.` / `..` are refused with `PaystackSdk::InvalidValueError` before any request is sent. Previously a value such as `".."` was resolved by the URL builder into a different endpoint (`transactions.verify(reference: "..")` called `/transaction`), and `/`, `?` or `#` in a value changed the path or query. Affects `transactions` (`verify`, `fetch`, `timeline`), `transfers` (`fetch`, `verify`), `transfer_recipients` (`fetch`, `update`, `delete`), `customers` (`fetch`, `update`, `validate`) and `verification` (`resolve_card_bin`).
+- Values placed in URL paths (references, codes, ids, card BINs) are now escaped, and `.` / `..` are refused with `PaystackSdk::InvalidValueError` before any request is sent. Previously a value such as `".."` was resolved by the URL builder into a different endpoint (`transactions.verify(reference: "..")` called `/transaction`), and `/`, `?` or `#` in a value changed the path or query. Affects `transactions` (`verify`, `fetch`, `timeline`), `transfers` (`fetch`, `verify`), `transfer_recipients` (`fetch`, `update`, `delete`), `customers` (`fetch`, `update`, `validate`) and `miscellaneous` (`resolve_card_bin`).
 - `Response#[]` and `Response#key?` returned `nil`/`false` for every key on real Paystack bodies (string keys). Both now accept strings or symbols.
 - `Customers#deactivate_authorization` called a non-existent endpoint (`customer/deactivate_authorization`). It now posts to Paystack's documented `POST /customer/authorization/deactivate`.
 - `429` responses now raise `RateLimitError` (previously swallowed as a client error because the `400..499` branch matched first). `retry_after` is read from Paystack's `x-ratelimit-reset` header (nil when absent) instead of the undocumented `Retry-After`.

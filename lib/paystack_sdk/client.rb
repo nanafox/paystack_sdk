@@ -5,8 +5,8 @@ require_relative "resources/customers"
 require_relative "resources/transfer_recipients"
 require_relative "resources/transfers"
 require_relative "resources/banks"
-require_relative "resources/verification"
 require_relative "resources/charges"
+require_relative "resources/miscellaneous"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -103,24 +103,10 @@ module PaystackSdk
     # @example
     # ```ruby
     #   banks = client.banks
-    #   response = banks.list
+    #   response = banks.list(country: "nigeria")
     # ```
     def banks
       @banks ||= Resources::Banks.new(@connection)
-    end
-
-    # Provides access to the `Verification` resource.
-    #
-    # @return [PaystackSdk::Resources::Verification] An instance of the
-    #  `Verification` resource.
-    #
-    # @example
-    # ```ruby
-    #   verification = client.verification
-    #   response = verification.resolve_account(account_number: ..., bank_code: ...)
-    # ```
-    def verification
-      @verification ||= Resources::Verification.new(@connection)
     end
 
     # Provides access to the `Charges` resource.
@@ -135,6 +121,19 @@ module PaystackSdk
     # ```
     def charges
       @charges ||= Resources::Charges.new(@connection)
+    end
+
+    # Provides access to the `Miscellaneous` resource.
+    #
+    # @return [PaystackSdk::Resources::Miscellaneous] An instance of the
+    #  `Miscellaneous` resource.
+    #
+    # @example
+    # ```ruby
+    #   response = client.miscellaneous.resolve_card_bin(bin: "539983")
+    # ```
+    def miscellaneous
+      @miscellaneous ||= Resources::Miscellaneous.new(@connection)
     end
   end
 end

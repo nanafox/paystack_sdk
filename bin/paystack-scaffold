@@ -163,7 +163,10 @@ def parameters_for(entry)
   params = []
 
   entry[:path_params].select { |p| p["in"] == "path" }.each do |p|
-    params << Param.new(keyword: ruby_word(snake(p["name"])), wire: p["name"], required: true, info: describe_schema(p["schema"]), description: one_line(p["description"]), location: :path)
+    exc = exception_for(op_key, "path", p["name"])
+    info = describe_schema(p["schema"])
+    info[:type] = exc["type"] if exc && exc["type"]
+    params << Param.new(keyword: ruby_word(snake(p["name"])), wire: p["name"], required: true, info: info, description: one_line(p["description"]), location: :path)
   end
 
   entry[:path_params].select { |p| p["in"] == "query" }.each do |p|
@@ -172,7 +175,9 @@ def parameters_for(entry)
     keyword = exc ? (exc["ruby"] || snake(wire)) : snake(wire)
     info = describe_schema(p["schema"])
     info[:type] = exc["type"] if exc && exc["type"]
-    params << Param.new(keyword: ruby_word(keyword), wire: wire, required: !!p["required"], info: info, description: one_line(p["description"]), location: :query)
+    info[:enum] = exc["enum"] if exc && exc["enum"]
+    required = !!p["required"] || !!(exc && exc["required"])
+    params << Param.new(keyword: ruby_word(keyword), wire: wire, required: required, info: info, description: one_line(p["description"]), location: :query)
   end
 
   # parameters Paystack documents but the spec omits (exception entries with no `spec`)
@@ -280,7 +285,8 @@ end
 
 # One line when it fits, otherwise one argument per line.
 def enum_check(p)
-  values = "%w[#{p.info[:enum].join(" ")}]"
+  # %w[] would split a value that contains a space ("south africa")
+  values = (p.info[:enum].any? { |v| v.to_s.match?(/\s/) }) ? "[#{p.info[:enum].map(&:inspect).join(", ")}]" : "%w[#{p.info[:enum].join(" ")}]"
   one_line = %(validate_allowed_values!(value: #{p.keyword}, allowed_values: #{values}, name: "#{p.wire}"))
   return one_line if one_line.size + 8 <= WIDTH
 

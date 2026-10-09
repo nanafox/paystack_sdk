@@ -11,6 +11,8 @@
 #   spec:      the name the OpenAPI spec uses for the same parameter; null when the spec omits it
 #              (a docs-only parameter, which also needs `type` and `description`)
 #   type:      optional; the type to check the value against when the docs and spec disagree on it
+#   required:  optional; true when the docs and the API require a parameter the spec marks optional
+#   enum:      optional; the allowed values, when the API accepts a different list than the spec's
 #   ruby:      optional; the idiomatic Ruby keyword when it is not just the snake_case of `wire`
 #   reason / docs: why, and where it was confirmed
 #
@@ -98,3 +100,53 @@
   description: Specify a payment page's id to export only transactions conducted on said page.
   reason: Listed on the canonical Export Transactions section but absent from the spec. Confirmed against the Paystack test API on 2026-10-08, where it changes the exported rows.
   docs: https://paystack.com/docs/api/transaction/#export
+
+- operation: "GET /bank"
+  in: query
+  wire: type
+  spec: type
+  enum: [ghipss, mobile_money, nuban, kepss, basa]
+  reason: The spec lists the Ghana bank channel as ghipps, which is a typo. The canonical List Banks section says ghipss. Confirmed against the Paystack test API on 2026-10-09 with country=ghana&perPage=1, where type=ghipss returns banks and type=ghipps returns an empty list. kepss was checked the same way (kepss returns banks for Kenya, kepps returns none).
+  docs: https://paystack.com/docs/api/miscellaneous/#bank
+
+- operation: "GET /bank/resolve"
+  in: query
+  wire: account_number
+  spec: account_number
+  type: string
+  required: true
+  reason: The docs say account_number is a required string; the spec says an optional integer. An integer would lose the leading zero that account numbers carry. Confirmed against the Paystack test API on 2026-10-09, where omitting it returns 400 "account_number is required", and 0022728151 is read as a different account number from 22728151 (the latter returns 400 "Account number is invalid").
+  docs: https://paystack.com/docs/api/verification/#resolve-account
+
+- operation: "GET /bank/resolve"
+  in: query
+  wire: bank_code
+  spec: bank_code
+  type: string
+  required: true
+  reason: The docs say bank_code is a required string; the spec says an optional integer. Bank codes carry leading zeros (063). Confirmed against the Paystack test API on 2026-10-09, where omitting it returns 400 "bank_code is required".
+  docs: https://paystack.com/docs/api/verification/#resolve-account
+
+- operation: "GET /decision/bin/{bin}"
+  in: path
+  wire: bin
+  spec: bin
+  type: string
+  reason: The docs say bin is a string; the spec says an integer. Confirmed against the Paystack test API on 2026-10-09, where /decision/bin/539983 resolves and a non-numeric value returns 400 "Bin must be 6 or 8 digits". A string keeps leading zeros.
+  docs: https://paystack.com/docs/api/verification/#resolve-card
+
+- operation: "GET /address_verification/states"
+  in: query
+  wire: country
+  spec: country
+  required: true
+  reason: The docs mark country required; the spec marks it optional. Confirmed against the Paystack test API on 2026-10-09, where omitting it returns 422 "Country is required".
+  docs: https://paystack.com/docs/api/miscellaneous/#avs-states
+
+- operation: "GET /bank"
+  in: query
+  wire: currency
+  spec: currency
+  enum: [GHS, KES, NGN, ZAR, USD]
+  reason: The spec lists four currencies; the SDK has always accepted USD as well. Confirmed against the Paystack test API on 2026-10-09, where currency=USD&country=ghana&perPage=1 returns a USD bank (Absa Bank Ghana Limited) while currency=XXX returns an empty list. The docs only say "one of the supported currency".
+  docs: https://paystack.com/docs/api/miscellaneous/#bank

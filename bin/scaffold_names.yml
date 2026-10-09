@@ -12,3 +12,9 @@
 
 # "Initiate Transfer"
 "POST /transfer": create
+
+# "Validate Bank Account"
+"POST /bank/validate": validate_account
+
+# "List States (AVS)"
+"GET /address_verification/states": list_states
