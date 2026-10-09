@@ -430,6 +430,13 @@
   docs: https://paystack.com/docs/api/plan/#list
 
 - operation: "GET /subscription"
+  in: query
+  wire: customer
+  spec: customer
+  type: integer
+  ruby: customer_id
+  reason: The docs list customer as an Integer customer ID; the spec types it as a string. Confirmed against the Paystack test API on 2026-10-09, where customer=<numeric id> returns that customer's subscription and the same customer's code (CUS_...) or email returns none. The Ruby keyword is customer_id because it takes the numeric ID.
+  docs: https://paystack.com/docs/api/subscription/#list
 
 - operation: "POST /paymentrequest"
   in: body
