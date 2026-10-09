@@ -1,0 +1,23 @@
+openapi: 3.0.1
+info: {title: t, version: "1"}
+tags: [{name: Widget}]
+paths:
+  /widget:
+    get:
+      tags: [Widget]
+      summary: List Widgets
+      parameters:
+        - {name: per_page, in: query, schema: {type: integer}}
+        - {name: color, in: query, schema: {type: integer}}
+        - {name: shape, in: query, schema: {type: string}}
+        - {name: size, in: query, schema: {type: string}}
+  /widget/{id}:
+    get:
+      tags: [Widget]
+      summary: Fetch Widget
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: integer}}
+  /widget/unlisted:
+    get:
+      tags: [Widget]
+      summary: Unlisted

@@ -14,6 +14,8 @@ bundle exec standardrb            # lint/format (StandardRB, not RuboCop)
 bin/paystack-spec audit           # SDK vs Paystack's OpenAPI spec (pinned, offline); must exit 0
 bin/paystack-spec update          # refresh the pinned spec from upstream and show what changed
 bin/paystack-scaffold Refund      # create a resource, its specs and Client wiring from the spec (--dry-run, --destroy)
+bin/paystack-spec docs-fetch      # download Paystack's docs mirror pages into tmp/ (gitignored)
+bin/paystack-spec docs-diff [Tag] # where the docs pages and the spec disagree: leads to settle, not verdicts
 bin/paystack-spec show POST /transfer
 bin/paystack-spec missing Customer
 ```
