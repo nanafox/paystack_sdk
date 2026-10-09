@@ -109,7 +109,7 @@ RSpec.describe "HTTP resilience" do
       allow_any_instance_of(Faraday::Retry::Middleware).to receive(:sleep)
       stub_request(:post, "#{url}/transfer").to_return(rate_limited, ok)
 
-      expect(client.transfers.create(payload)).to be_success
+      expect(client.transfers.create(**payload)).to be_success
       expect(connection_attempts(:post, "/transfer")).to have_been_made.times(2)
     end
   end
@@ -164,21 +164,21 @@ RSpec.describe "HTTP resilience" do
     it "does not retry a POST on 503, even with a reference" do
       stub_request(:post, "#{url}/transfer").to_return(unavailable)
 
-      expect { client.transfers.create(payload) }.to raise_error(PaystackSdk::ServerError)
+      expect { client.transfers.create(**payload) }.to raise_error(PaystackSdk::ServerError)
       expect(connection_attempts(:post, "/transfer")).to have_been_made.once
     end
 
     it "does not retry a POST on timeout" do
       stub_request(:post, "#{url}/transfer").to_timeout
 
-      expect { client.transfers.create(payload) }.to raise_error(PaystackSdk::TimeoutError)
+      expect { client.transfers.create(**payload) }.to raise_error(PaystackSdk::TimeoutError)
       expect(connection_attempts(:post, "/transfer")).to have_been_made.once
     end
 
     it "does not retry a POST on connection failure" do
       stub_request(:post, "#{url}/transfer").to_raise(Faraday::ConnectionFailed.new("reset"))
 
-      expect { client.transfers.create(payload) }.to raise_error(PaystackSdk::ConnectionError)
+      expect { client.transfers.create(**payload) }.to raise_error(PaystackSdk::ConnectionError)
       expect(connection_attempts(:post, "/transfer")).to have_been_made.once
     end
 
@@ -198,7 +198,7 @@ RSpec.describe "HTTP resilience" do
       eager = PaystackSdk::Client.new(secret_key: "sk", retry_interval: 0.01, retry_non_idempotent: true)
       stub_request(:post, "#{url}/transfer").to_return(unavailable, ok)
 
-      expect(eager.transfers.create(payload)).to be_success
+      expect(eager.transfers.create(**payload)).to be_success
       expect(connection_attempts(:post, "/transfer")).to have_been_made.times(2)
     end
   end

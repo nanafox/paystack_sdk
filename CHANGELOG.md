@@ -28,6 +28,9 @@
   - `validate` now requires `first_name`, `last_name`, `type`, `country`, `bvn`, `bank_code` and `account_number`, as Paystack does (the test API answers 400 without each). It previously did not require `bvn` or the names.
   - `list` takes named filters (`per_page`, `page`, `from`, `to`, `use_cursor`, `next_cursor`, `previous`) instead of `**params`, and no longer defaults `per_page: 50, page: 1`; Paystack's own defaults apply.
   - `metadata` on `create` and `update` must be a Hash; it is sent as a JSON object (Paystack rejects a JSON string).
+- `Transfers` is now generated from Paystack's OpenAPI spec and takes keyword arguments instead of payload hashes. Existing method names are unchanged.
+  - `create(source:, amount:, recipient:, reference:, reason: nil, currency: nil)` no longer accepts a hash; use `create(**params)` to migrate. `reference` is now required, as Paystack's docs and spec both require it, and `currency` must be one of NGN, ZAR, KES, GHS.
+  - `list` takes named filters (`per_page`, `page`, `from`, `to`, `recipient`, `status`, and cursor pagination with `use_cursor`, `next_cursor`, `previous`) instead of a query hash, so a misspelt filter now raises `ArgumentError`. `per_page` is sent as `perPage`.
 
 ### Fixed
 
@@ -45,6 +48,7 @@
 - `customers` covers the rest of Paystack's Customer API: `initialize_authorization`, `verify_authorization`, `initialize_direct_debit`, `direct_debit_activation_charge` and `fetch_mandate_authorizations`, plus cursor pagination on `list` (`use_cursor`, `next_cursor`, `previous`).
 - `bin/scaffold_names.yml` entries can be a hash, `{name: ..., keywords: {path_variable: ruby_keyword}}`, so a path variable takes the Ruby keyword Paystack's docs use where the spec names it differently.
 - `bin/paystack-scaffold` applies body-field entries from `spec/support/paystack_contract_exceptions.yml` (wire name, type and description), as it already did for query parameters.
+- `transfers.bulk_create`, `export`, `resend_otp`, `disable_otp`, `finalize_disable_otp` and `enable_otp` (Paystack's Initiate Bulk Transfer, Export Transfers and Transfers Control OTP operations).
 - `transactions.export` accepts `currency`, `amount`, `settled` and `payment_page` (documented by Paystack, absent from the OpenAPI spec; confirmed to filter results against the test API) and `subaccount_code`. Paystack's docs also list `perPage` and `page` on Export, but the API ignores them, so the SDK does not offer them.
 - `PaystackSdk::Webhook` verifies Paystack webhook signatures (HMAC SHA512, constant-time) and parses events: `valid_signature?`, `verify!`, `construct_event`, `sign`, `trusted_ip?`, plus the documented `EVENTS` and `IP_ADDRESSES`. New errors: `WebhookError`, `InvalidSignatureError`, `InvalidPayloadError`.
 - `Response#meta` exposes the pagination metadata (`total`, `page`, `pageCount`, `perPage`) that list endpoints return.

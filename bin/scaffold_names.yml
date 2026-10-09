@@ -32,3 +32,9 @@
   name: fetch
   keywords:
     code: email_or_code
+
+# "Initiate Bulk Transfer": the bulk form of `create`.
+"POST /transfer/bulk": bulk_create
+# The docs call these "Disable OTP", "Finalize Disable OTP" and "Enable OTP"; the paths agree.
+"POST /transfer/disable_otp_finalize": finalize_disable_otp
+"POST /transfer/enable_otp": enable_otp
