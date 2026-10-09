@@ -121,8 +121,8 @@ def names_entry(key)
   entry = @names[key]
   return [entry, {}, nil] unless entry.is_a?(Hash)
 
-  unknown = entry.keys - %w[name keywords note]
-  abort "#{key}: unknown key(s) #{unknown.join(", ")} in the names file (expected name, keywords and note)." unless unknown.empty?
+  unknown = entry.keys - %w[name keywords body note]
+  abort "#{key}: unknown key(s) #{unknown.join(", ")} in the names file (expected name, keywords, body and note)." unless unknown.empty?
   [entry["name"], entry["keywords"] || {}, entry["note"]]
 end
 
@@ -138,6 +138,12 @@ def note_lines(text)
     end
   end
   lines.map { |line| "      # #{line}" }
+end
+
+# The Ruby keyword for an operation whose body is a JSON array (the names file's `body`), or `items`.
+def array_body_keyword(key)
+  entry = @names[key]
+  (entry.is_a?(Hash) && entry["body"]) || "items"
 end
 
 def ruby_word(name)
@@ -186,6 +192,19 @@ def one_line(text)
   text.to_s.strip.gsub(/\s+/, " ").split(/(?<=[.!?])\s/).first.to_s
 end
 
+# What each element of a JSON array body holds, from the spec's item schema.
+def array_body_description(schema)
+  item = flatten(resolve(schema)["items"] || {})
+  required = item["required"]
+  optional = item["properties"].keys - required
+  return "The array Paystack expects as the request body" if required.empty? && optional.empty?
+
+  text = "The request body: an array of hashes"
+  text += ", each with #{required.join(", ")}" unless required.empty?
+  text += (required.empty? ? ", each with optional " : ", and optionally ") + optional.join(", ") unless optional.empty?
+  text
+end
+
 Param = Struct.new(:keyword, :wire, :required, :info, :description, :location, keyword_init: true)
 
 def parameters_for(entry)
@@ -222,9 +241,14 @@ def parameters_for(entry)
   end
 
   body = resolve(entry[:op]["requestBody"] || {}).dig("content", "application/json", "schema")
-  if body && resolve(body)["type"] == "array"
-    # a JSON array body (bulk charge): one keyword, sent as given. Rename it to suit the operation.
-    params << Param.new(keyword: "items", wire: nil, required: true, info: describe_schema(body), description: "The array Paystack expects as the request body", location: :array_body)
+  array_body = body && resolve(body)["type"] == "array"
+  if @names[op_key].is_a?(Hash) && @names[op_key].key?("body") && !array_body
+    abort "#{op_key}: the names file names a body keyword, but this operation's body is not a JSON array."
+  end
+
+  if array_body
+    # a JSON array body (bulk charge): one keyword, sent as given. The names file's `body` renames it.
+    params << Param.new(keyword: ruby_word(array_body_keyword(op_key)), wire: nil, required: true, info: describe_schema(body), description: array_body_description(body), location: :array_body)
   elsif body
     flat = flatten(body)
     flat["properties"].each do |name, prop|
@@ -328,8 +352,9 @@ end
 def validation_lines(params)
   params.flat_map do |p|
     lines = []
-    # a path value is named by its keyword (it is never sent by name); a sent value by its wire name
-    shown = (p.location == :path) ? p.keyword : p.wire
+    # a path value or an array body is named by its keyword (neither is sent by name); a sent value by
+    # its wire name
+    shown = (p.location == :path || p.wire.nil?) ? p.keyword : p.wire
     lines << %(validate_presence!(value: #{p.keyword}, name: "#{shown}")) if p.required
     lines.concat(convention_checks(p))
     lines << enum_check(p) if p.info[:enum]

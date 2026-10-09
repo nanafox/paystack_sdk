@@ -96,6 +96,7 @@ It creates `lib/paystack_sdk/resources/<name>.rb` and `spec/resources/<name>_spe
 "POST /storefront/{id}/publish":
   note: "Publishing copies the storefront and its products into LIVE mode, even with a test key."
 ```
+An operation whose body is a JSON array (Initiate Bulk Charge) takes it as one keyword, `items` unless the entry's `body:` names another (`body: charges`).
 
 Check `bin/paystack-spec docs-diff <resource>` for `path` lines, but confirm the name in the docs page's *Path Parameters* table: the cURL samples sometimes use another placeholder.
 

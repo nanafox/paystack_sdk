@@ -21,6 +21,7 @@ require_relative "resources/pages"
 require_relative "resources/products"
 require_relative "resources/orders"
 require_relative "resources/storefronts"
+require_relative "resources/bulk_charges"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -288,6 +289,14 @@ module PaystackSdk
     #  `Storefronts` resource.
     def storefronts
       @storefronts ||= Resources::Storefronts.new(@connection)
+    end
+
+    # Provides access to the `BulkCharges` resource.
+    #
+    # @return [PaystackSdk::Resources::BulkCharges] An instance of the
+    #  `BulkCharges` resource.
+    def bulk_charges
+      @bulk_charges ||= Resources::BulkCharges.new(@connection)
     end
 
     private

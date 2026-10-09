@@ -12,6 +12,12 @@
 #     name: fetch                  # optional; the method name, as above
 #     keywords:
 #       code: email_or_code        # spec path variable => Ruby keyword
+#
+# An operation whose body is a JSON array (Initiate Bulk Charge) takes it as one keyword, `items`
+# unless the entry's `body` names another:
+#
+#   "POST /bulkcharge":
+#     body: charges
 
 # "Initialize Transaction": `initialize` would replace the constructor.
 "POST /transaction/initialize": initiate
@@ -120,3 +126,23 @@
 # is a live, active storefront that a test key cannot read or delete).
 "POST /storefront/{id}/publish":
   note: "Publishing copies the storefront and its products into LIVE mode, even when you call it with a test key (sk_test_). The live copy is active, can be found by its slug, and cannot be read or deleted with a test key. Do not call this to try the API out; use `duplicate` instead."
+
+# "Initiate Bulk Charge": the body is a JSON array of charges, taken as `charges:`.
+"POST /bulkcharge":
+  body: charges
+# "Fetch Bulk Charge Batch": the docs name the path variable id_or_code (batch ID or code).
+"GET /bulkcharge/{code}":
+  keywords:
+    code: id_or_code
+# "List Charges in a Batch": the docs call it "Fetch Charges in a Batch"; `list_in_a_batch` reads badly.
+"GET /bulkcharge/{code}/charges":
+  name: fetch_charges
+  keywords:
+    code: id_or_code
+# "Pause/Resume Bulk Charge Batch": the docs name the path variable batch_code.
+"GET /bulkcharge/pause/{code}":
+  keywords:
+    code: batch_code
+"GET /bulkcharge/resume/{code}":
+  keywords:
+    code: batch_code
