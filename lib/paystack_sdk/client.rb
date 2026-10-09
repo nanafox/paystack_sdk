@@ -75,7 +75,7 @@ module PaystackSdk
     # @example
     # ```ruby
     #   recipients = client.transfer_recipients
-    #   response = recipients.create(params)
+    #   response = recipients.create(type: "nuban", name: "Ama Mensah", account_number: "0123456789", bank_code: "058")
     # ```
     def transfer_recipients
       @transfer_recipients ||= Resources::TransferRecipients.new(@connection)

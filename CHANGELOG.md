@@ -15,6 +15,10 @@
   - `verification.validate_account(hash)` is now `banks.validate_account(account_name:, account_number:, account_type:, bank_code:, country_code:, document_type:, document_number: nil)`.
   - `verification.resolve_card_bin(bin)` is now `miscellaneous.resolve_card_bin(bin:)`. New: `miscellaneous.list_countries` and `miscellaneous.list_states(country:)`.
   - `banks.list` takes named filters instead of a hash (`per_page:` is sent as `perPage`, `next_cursor:` as `next`) and now accepts every filter Paystack documents (`country`, `type`, `gateway`, `use_cursor`, ...). Its `type` enum uses `ghipss` (the spec's `ghipps` is a typo), and `currency` still accepts `USD`.
+- `TransferRecipients` is now generated from Paystack's OpenAPI spec and takes keyword arguments instead of payload hashes. Method names are unchanged.
+  - `create(type:, name:, account_number:, bank_code:, ...)` no longer accepts a hash; use `create(**params)` to migrate. `type` is checked against Paystack's list (`nuban`, `ghipss`, `mobile_money`, `basa`, `authorization`).
+  - `fetch(code:)`, `update(code:, name:, email:)` and `delete(code:)` replace `recipient_code:`. The value can be the recipient code or its numeric ID. `update` takes `name:` and `email:` instead of a `params:` hash; `name` is optional, as the API accepts an update with only `email` (docs say `name` is required; checked against the test API).
+  - `list` takes `per_page:`, `page:`, `use_cursor:`, `next_cursor:` and `previous:` instead of a query hash. `perPage` is what Paystack's docs name the page size; the API honours it. `from` and `to` are in the docs but the API ignores them, so they are not offered.
 
 ### Fixed
 
@@ -25,6 +29,7 @@
 
 ### Added
 
+- `transfer_recipients.bulk_create(batch:)` for `POST /transferrecipient/bulk`.
 - `transactions.export` accepts `currency`, `amount`, `settled` and `payment_page` (documented by Paystack, absent from the OpenAPI spec; confirmed to filter results against the test API) and `subaccount_code`. Paystack's docs also list `perPage` and `page` on Export, but the API ignores them, so the SDK does not offer them.
 - `PaystackSdk::Webhook` verifies Paystack webhook signatures (HMAC SHA512, constant-time) and parses events: `valid_signature?`, `verify!`, `construct_event`, `sign`, `trusted_ip?`, plus the documented `EVENTS` and `IP_ADDRESSES`. New errors: `WebhookError`, `InvalidSignatureError`, `InvalidPayloadError`.
 - `Response#meta` exposes the pagination metadata (`total`, `page`, `pageCount`, `perPage`) that list endpoints return.
