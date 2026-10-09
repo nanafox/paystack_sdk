@@ -6,6 +6,11 @@
 
 - `Balances` (`client.balances`): `fetch` and `ledger(per_page:, page:, from:, to:)`, generated from Paystack's OpenAPI spec and read-only (GET). `fetch` returns one entry per currency with the balance in the currency's subunit (pesewas for GHS). Paystack's docs have no Balance page; the two operations sit on the Transfers Control page and the behaviour was confirmed against the test API.
 - `Subscriptions` (`client.subscriptions`): `create`, `list`, `fetch(id_or_code:)`, `enable(code:, token:)`, `disable(code:, token:)`, `generate_update_link(code:)` and `send_update_link(code:)`, generated from Paystack's OpenAPI spec. `list` filters by `plan_id:` and `customer_id:` (sent as `plan` and `customer`): the test API matches numeric IDs only. `start_date` is checked as ISO 8601 before sending, since the test API refuses an invalid one but still creates the subscription.
+- `DedicatedVirtualAccounts` (`client.dedicated_virtual_accounts`), generated from Paystack's OpenAPI spec: `create`, `assign`, `list`, `fetch(dedicated_account_id:)`, `requery`, `deactivate(dedicated_account_id:)`, `add_split`, `remove_split` and `fetch_bank_providers`.
+
+### Fixed
+
+- `bin/paystack-scaffold` now adds a resource's `Client` accessor above `Client`'s private helpers, where it is public, instead of at the end of the class. It also finds the docs anchor of an operation whose cURL sample on the docs page calls another path (Split Dedicated Account Transaction), and corrects the `@see` link of `customers.direct_debit_activation_charge` to `#directdebit-activation-charge`.
 
 ## [0.2.0] - 2026-10-09
 
