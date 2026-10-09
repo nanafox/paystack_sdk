@@ -150,7 +150,19 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
     end
 
     it "leaves the parentheses off a method with no parameters" do
-      expect(scaffold("Payment Request", "--print").first).to include("def payment_total\n")
+      expect(scaffold("Payment Request", "--print").first).to include("def totals\n")
+    end
+
+    it "leaves out a body field the exceptions file marks not required, though the spec requires it" do
+      source = scaffold("Payment Request", "--print").first
+      expect(source).to include("        customer:,\n        amount: nil,\n")
+      expect(source).not_to include('validate_presence!(value: amount, name: "amount")')
+    end
+
+    it "adds docs-only body fields to an operation the spec gives no body" do
+      source = scaffold("Payment Request", "--print").first
+      expect(source).to include("def finalize(id_or_code:, send_notification: nil)")
+      expect(source).to include("wire_body = to_wire({send_notification:}, WIRE_NAMES)")
     end
 
     it "sends the names Paystack documents, not the Ruby keywords" do
