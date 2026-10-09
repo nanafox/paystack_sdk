@@ -20,14 +20,15 @@ RSpec.describe PaystackSdk::Webhook do
       expect(described_class::IP_ADDRESSES).to contain_exactly("52.31.139.75", "52.49.173.169", "52.214.14.220")
     end
 
-    it "lists the events Paystack documents" do
+    it "lists the events Paystack documents and the ones it was seen sending" do
       expect(described_class::EVENTS).to contain_exactly(
         "charge.dispute.create", "charge.dispute.remind", "charge.dispute.resolve", "charge.success",
         "customeridentification.failed", "customeridentification.success",
         "dedicatedaccount.assign.failed", "dedicatedaccount.assign.success",
         "invoice.create", "invoice.payment_failed", "invoice.update",
-        "paymentrequest.pending", "paymentrequest.success",
-        "refund.failed", "refund.pending", "refund.processed", "refund.processing",
+        "paymentrequest.draft", "paymentrequest.pending", "paymentrequest.success",
+        "product.create", "product.delete", "product.update",
+        "refund.failed", "refund.needs-attention", "refund.pending", "refund.processed", "refund.processing",
         "subscription.create", "subscription.disable", "subscription.expiring_cards", "subscription.not_renew",
         "transfer.failed", "transfer.reversed", "transfer.success"
       )

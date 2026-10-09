@@ -168,9 +168,9 @@ RSpec.describe "what the webhooks skill says", contract: false do
       expect(PaystackSdk::Response.instance_method(:paid?).parameters.map(&:last)).to include(:amount, :currency)
     end
 
-    it "lists every documented event, and says 24" do
-      expect(PaystackSdk::Webhook::EVENTS.size).to eq(24)
-      expect(text).to include("these 24")
+    it "lists every event in Webhook::EVENTS, and says how many" do
+      expect(PaystackSdk::Webhook::EVENTS.size).to eq(29)
+      expect(text).to include("these 29")
       PaystackSdk::Webhook::EVENTS.each { |name| expect(text).to include("`#{name}`") }
     end
   end
@@ -188,6 +188,58 @@ RSpec.describe "what the webhooks skill says", contract: false do
       expect(response.paid?(amount: 5000, currency: "GHS")).to be(true)
       expect(response.paid?(amount: 1, currency: "GHS")).to be(false)
       expect(response.paid?(amount: 5000, currency: "NGN")).to be(false)
+    end
+  end
+
+  describe "the payload facts and the Webhook Events API section" do
+    let(:client) { PaystackSdk::Client.new(secret_key: "sk_test_webhook") }
+
+    def key_for(event, data)
+      body = {event: event, data: data}.to_json
+      PaystackReceiver.key(PaystackSdk::Webhook.construct_event(payload: body, signature: PaystackSdk::Webhook.sign(body, secret), secret: secret))
+    end
+
+    it "keys a refund's pending and processed events differently although they share data.id" do
+      same_id = {id: 18_633_077, status: "pending", transaction_reference: "t1", refund_reference: "r1"}
+
+      expect(key_for("refund.pending", same_id)).not_to eq(key_for("refund.processed", same_id.merge(status: "processed")))
+      expect(key_for("refund.processed", same_id)).to eq(key_for("refund.processed", same_id))
+    end
+
+    it "names the methods and keywords of client.webhook_events that the skill uses" do
+      resource = PaystackSdk::Resources::WebhookEvents
+      expect(resource.instance_method(:list).parameters.map(&:last)).to include(:status, :limit, :category, :event_type, :next_cursor, :previous)
+      expect(resource.instance_method(:lookup).parameters).to include([:keyreq, :id])
+      expect(resource.instance_method(:fetch).parameters).to include([:keyreq, :id])
+      expect(resource.instance_method(:resend).parameters).to include([:keyreq, :ids])
+      expect(resource.instance_method(:resend_matching).parameters).to include([:keyreq, :preview], [:key, :filters])
+      expect(PaystackSdk::Resources::WebhookEvents::STATUSES).to eq(%w[Delivered Pending Failed])
+    end
+
+    it "reads an event's delivery state and the payload as the skill shows, with brackets for the nested data" do
+      stub_request(:get, "https://api.paystack.co/integration/webhooks/events/6ac94b47fdad55440ef2066a")
+        .to_return(status: 200, headers: {"Content-Type" => "application/json"}, body: {status: true, message: "Webhook Retrieved", data: {
+          _id: "6ac94b47fdad55440ef2066a", status: "Pending", status_detail: "retrying", response_code: 404,
+          merchant_response_body: "<html>", event_payload: {event: "refund.processed", data: {id: 18_633_077}}
+        }}.to_json)
+
+      event = client.webhook_events.fetch(id: "6ac94b47fdad55440ef2066a")
+
+      expect(event.status_detail).to eq("retrying")
+      expect(event.response_code).to eq(404)
+      expect(event.merchant_response_body).to eq("<html>")
+      expect(event.event_payload[:data].id).to eq(18_633_077)
+    end
+
+    it "says resend_matching needs preview, and refuses both cursors" do
+      expect { client.webhook_events.resend_matching }.to raise_error(ArgumentError, /preview/)
+      expect { client.webhook_events.list(next_cursor: "a", previous: "b") }.to raise_error(PaystackSdk::InvalidValueError)
+      expect(text).to include("`preview: true` first")
+    end
+
+    it "keeps the skill's claims about where the payload shapes come from honest" do
+      expect(text).to include("No webhook was received by code written for this skill")
+      expect(text).to include("not what your endpoint will see in live mode")
     end
   end
 end

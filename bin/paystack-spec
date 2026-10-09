@@ -48,6 +48,7 @@ OptionParser.new { |o|
 DOCS_MIRROR = "https://docs-v2.production.paystack.co/docs/api"
 DOCS_NON_REFERENCE = %w[authentication rate-limits pagination errors webhook-events].freeze
 EXCEPTIONS_FILE = File.expand_path("../spec/support/paystack_contract_exceptions.yml", __dir__)
+DOCS_ONLY_FILE = File.expand_path("../spec/fixtures/docs_only_operations.yml", __dir__)
 
 PINNED = File.expand_path("../spec/fixtures/paystack_openapi.yaml", __dir__)
 PINNED_SOURCE = File.expand_path("../spec/fixtures/paystack_openapi.source.yml", __dir__)
@@ -78,10 +79,18 @@ def operations(spec)
   end
 end
 
+# Operations the docs describe and the spec lacks, which the SDK implements deliberately.
+def docs_only_operations
+  @docs_only_operations ||= YAML.safe_load_file(DOCS_ONLY_FILE).to_h do |entry|
+    verb, path = entry.fetch("operation").split(" ", 2)
+    [[verb, normalize(path)], entry]
+  end
+end
+
 def implemented
   Dir[RESOURCES_GLOB].each_with_object({}) do |file, found|
     File.read(file).scan(PATH_PATTERN) do |verb, path|
-      found[[verb.upcase, normalize(path.gsub(/#\{[^}]+\}/, "{x}"))]] = File.basename(file)
+      found[[verb.upcase, normalize(path.gsub(/#\{[^}]+\}/, "{x}").sub(/\?.*/, ""))]] = File.basename(file)
     end
   end
 end
@@ -175,6 +184,18 @@ end
 # The key of the spec operation a docs operation describes. Most match on normalized path; some pages
 # put a sample id in the URL (`/order/12345`), so fall back to matching segment by segment, a spec
 # `{variable}` standing for any docs segment. Unmatched ones keep their own key.
+# Whether a docs-only operation is one the SDK records in docs_only_operations.yml. A `{variable}` in the
+# registry matches any docs segment, since the docs sometimes put a sample id in the URL.
+def registered_docs_only?(verb, docs_path)
+  segments = docs_path.split("/")
+  docs_only_operations.values.any? do |entry|
+    entry_verb, path = entry["operation"].split(" ", 2)
+    parts = path.split("/")
+    entry_verb == verb && parts.size == segments.size &&
+      parts.zip(segments).all? { |part, segment| part.start_with?("{") || part == segment }
+  end
+end
+
 def match_key(docs_op, ops)
   key = [docs_op[:verb], normalize(docs_op[:path])]
   return key if ops.key?(key)
@@ -231,9 +252,14 @@ case ARGV.shift
 when "audit"
   covered = ours.keys & ops.keys
   puts "Spec operations: #{ops.size}   SDK covers: #{covered.size} (#{(100.0 * covered.size / ops.size).round}%)"
-  drift = ours.keys - ops.keys
+  documented_only = ours.keys & docs_only_operations.keys
+  drift = ours.keys - ops.keys - docs_only_operations.keys
   if drift.empty?
-    puts "Every endpoint the SDK calls exists in the spec."
+    puts "Every endpoint the SDK calls exists in the spec#{" or is a documented-only operation" unless documented_only.empty?}."
+    unless documented_only.empty?
+      puts "Documented-only operations the SDK implements (in #{File.basename(DOCS_ONLY_FILE)}, not in the spec): #{documented_only.size}"
+      documented_only.each { |verb, path| puts "  #{verb} #{docs_only_operations[[verb, path]]["operation"].split(" ", 2).last}   (#{ours[[verb, path]]})" }
+    end
   else
     puts "\nSDK calls these but the spec has no such operation (check the docs; likely a bug):"
     drift.each { |verb, path| puts "  #{verb} #{path}   (#{ours[[verb, path]]})" }
@@ -303,8 +329,13 @@ when "docs-diff"
     docs_ops.each do |key, docs_op|
       entry = ops[key]
       if entry.nil?
-        lines << "  #{key[0]} #{docs_op[:path]}   (#{docs_op[:title]})\n      operation docs-only: the spec has no such operation"
-        totals["operation"] += 1
+        if registered_docs_only?(key[0], docs_op[:path])
+          lines << "  #{key[0]} #{docs_op[:path]}   (#{docs_op[:title]})\n      operation docs-only, implemented   [recorded in #{File.basename(DOCS_ONLY_FILE)}]"
+          totals["recorded"] += 1
+        else
+          lines << "  #{key[0]} #{docs_op[:path]}   (#{docs_op[:title]})\n      operation docs-only: the spec has no such operation"
+          totals["operation"] += 1
+        end
         next
       end
       seen << key

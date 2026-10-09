@@ -1,13 +1,13 @@
 ---
 name: paystack-sdk-webhooks
-description: 'Use when building or reviewing the endpoint that receives Paystack webhooks (charge.success, refund.*, transfer.*, subscription.*, invoice.*, dispute.*) in a Rails or Rack app: verifying the x-paystack-signature header with PaystackSdk::Webhook, reading the raw request body, skipping CSRF, answering 200 fast and working in a background job, handling duplicate or out-of-order deliveries, and testing the endpoint with a signed request.'
+description: 'Use when building or reviewing the endpoint that receives Paystack webhooks (charge.success, refund.*, transfer.*, subscription.*, invoice.*, dispute.*) in a Rails or Rack app: verifying the x-paystack-signature header with PaystackSdk::Webhook, reading the raw request body, skipping CSRF, answering 200 fast and working in a background job, handling duplicate or out-of-order deliveries, and testing the endpoint with a signed request. Also use when checking whether Paystack delivered a webhook, or replaying one, with client.webhook_events.'
 ---
 
 # Receiving Paystack webhooks
 
 A webhook is Paystack POSTing a JSON event to a URL you register on the Paystack dashboard. `PaystackSdk::Webhook` checks the signature and parses the event. It does not know your framework, your database or your jobs.
 
-What is executed and what is not: every Ruby block marked "runs in the spec" is run by `spec/skills_webhooks_spec.rb`. The Rails blocks are not run (the gem has no Rails dependency); they use ordinary Rails methods and are marked. Facts from Paystack's Webhooks page (payments/webhooks) are labelled "documented". Nothing here was observed from a real Paystack delivery: the test API cannot be made to send one (see the end).
+What is executed and what is not: every Ruby block marked "runs in the spec" is run by `spec/skills_webhooks_spec.rb`. The Rails blocks are not run (the gem has no Rails dependency); they use ordinary Rails methods and are marked. Facts from Paystack's Webhooks page (payments/webhooks) are labelled "documented". The payload shapes below were observed in Paystack's own event log (the Webhook Events API) on a test integration: they are what Paystack recorded as sent. No webhook was received by code written for this skill: the test API cannot be made to send one to a URL we control.
 
 ## The signature rule (documented)
 
@@ -113,7 +113,7 @@ Paystack also documents a Webhook Events API (list, look up and resend events to
 
 Retries mean the same event can reach you more than once, and a retry of an old event can land after a newer one. The Webhooks page documents no event id. So:
 
-- **Dedupe key**: event name + `data.id` (or `data.reference` when there is no id). Whether every event type carries an `id` or a `reference` is not verified; the receiver above falls back from one to the other, and an event with neither collapses to its name alone, so check the payload of each event type you handle before relying on this.
+- **Dedupe key**: event name + `data.id`. Observed (event log, test integration): every payload is `{"event": ..., "data": {...}}` with **no event id at the top level**, and `data.id` was present in every payload seen (`charge.success`, `refund.pending`, `refund.processed`, `product.create`, `product.update`, `product.delete`, `subscription.create`, `subscription.not_renew`). `data.reference` exists only on transaction events (`charge.success`); refund events carry `data.transaction_reference` and `data.refund_reference` instead. So a refund that goes `refund.pending` then `refund.processed` has the same `data.id` and two different event names: the name has to be in the key. Fall back to `data.reference` only for an event type you have checked, and an event with neither collapses to its name alone, so check the payload of each event type you handle (the Webhook Events API below shows exactly what Paystack sent).
 - **Store the key with a unique index** and insert before you act:
 
 ```ruby
@@ -161,21 +161,50 @@ end
 
 ## Which events (documented list = `Webhook::EVENTS`)
 
-`event.known?` is true for these 24. Paystack says it adds events over time, so an unknown name is still returned by `construct_event`: log it and answer 200.
+`event.known?` is true for these 29. Paystack says it adds events over time, so an unknown name is still returned by `construct_event`: log it and answer 200.
 
 | Group | Events |
 |---|---|
 | Payments | `charge.success` (a successful charge was made) |
-| Refunds | `refund.pending` (initiated, waiting for the processor), `refund.processing` (received by the processor), `refund.processed` (done), `refund.failed` (cannot be processed; your account is credited with the refund amount) |
+| Refunds | `refund.pending` (initiated, waiting for the processor), `refund.processing` (received by the processor), `refund.processed` (done), `refund.failed` (cannot be processed; your account is credited with the refund amount), `refund.needs-attention` (named in Paystack's Refunds guide, not on the Webhooks page; the retry endpoint is for this state) |
 | Transfers | `transfer.success`, `transfer.failed`, `transfer.reversed` |
 | Subscriptions | `subscription.create`, `subscription.disable`, `subscription.not_renew` (status changed to non-renewing; will not be charged on the next payment date), `subscription.expiring_cards` (all subscriptions with cards expiring that month; sent at the start of the month) |
 | Invoices | `invoice.create` (usually 3 days before the subscription is due), `invoice.update` (usually means the customer was charged; inspect the invoice object), `invoice.payment_failed` |
 | Disputes | `charge.dispute.create`, `charge.dispute.remind`, `charge.dispute.resolve` |
-| Payment requests | `paymentrequest.pending`, `paymentrequest.success` |
+| Payment requests | `paymentrequest.pending`, `paymentrequest.success`, `paymentrequest.draft` (not on the Webhooks page; seen in an event log) |
+| Products | `product.create`, `product.update`, `product.delete` (not on the Webhooks page; seen in an event log) |
 | Customer identification | `customeridentification.success`, `customeridentification.failed` |
 | Dedicated accounts | `dedicatedaccount.assign.success`, `dedicatedaccount.assign.failed` |
 
-Payload shapes: the Webhooks page we read shows **one** sample body, for `customeridentification.failed` (`event`, then `data` with `customer_id`, `customer_code`, `email`, `identification{country,type,bvn,account_number,bank_code}`, `reason`). We saw no documented sample for `charge.success`, the refund, transfer, subscription, invoice or dispute events on that page, so fields such as `data.reference`, `data.amount`, `data.currency` and `data.status` are **not verified** as webhook payload fields. They are what the corresponding API objects carry, which is why the job verifies by reference instead of reading them. The spec uses invented bodies of the shape `{"event": ..., "data": {"id": ..., "reference": ...}}` only to exercise the code.
+Payload shapes (observed in the event log of a test integration; `data` keys listed by event type):
+
+| Event | `data` carries |
+|---|---|
+| `charge.success` | `id`, `reference`, `status`, `amount`, `currency`, `paid_at`, `channel`, `gateway_response`, `metadata`, `fees`, `authorization` (the reusable `authorization_code` and card details), `customer`, `plan`, `subaccount`, `split` and more |
+| `refund.pending`, `refund.processed` | `id` (the refund's), `status`, `transaction_reference`, `refund_reference`, `amount`, `currency`, `customer`, `integration`, `domain`, `customer_note`, `merchant_note` (no `reference`) |
+| `subscription.create`, `subscription.not_renew` | `id`, `status`, `subscription_code`, `email_token`, `amount`, `next_payment_date`, `plan`, `authorization`, `customer` |
+| `product.create`, `product.update`, `product.delete` | `id`, `product_code`, `name`, `price`, `currency`, `quantity`, `active` |
+
+Everything above is a record of what Paystack sent to a test integration, not what your endpoint will see in live mode. Not observed: the payloads of the other events, and live payloads. The documented sample for `customeridentification.failed` has `customer_id`, `customer_code`, `email`, `identification` and `reason`. Still verify by reference instead of trusting any of these fields for money (below).
+
+## See what Paystack sent, and replay it: `client.webhook_events`
+
+The Webhook Events API (documented by Paystack; not in its OpenAPI spec) is the log of every webhook Paystack tried to send you. It answers "did my endpoint get it?" without guessing.
+
+```ruby
+client.webhook_events.list(status: "Failed", limit: 20)   # Delivered, Pending or Failed
+client.webhook_events.list(category: "transactions", event_type: "charge.success")
+client.webhook_events.lookup(id: 6_641_907_106)            # by a transaction id, or by an event _id
+event = client.webhook_events.fetch(id: "6ac94b47fdad55440ef2066a")
+event.status_detail                       # "retrying"
+event.response_code                       # what your endpoint answered, e.g. 404
+event.merchant_response_body              # the body your endpoint answered with
+event.event_payload[:data]                # exactly what Paystack sent (brackets: Response#data is a method)
+```
+
+Observed on the test API: a list page holds 50 events (the docs say 20), newest first; `meta.next` is a cursor you pass back as `next_cursor:` (not together with `previous:`); an event is `Pending` with `status_detail` `retrying` while Paystack still retries, and `Failed` once it gave up; the event's `_id` is a MongoDB-style id, so it is the one id Paystack gives an event, although it is not in the payload you receive. A `Failed` list on a test integration whose URL returned 404 showed `response_code` 404 for every event, which is how you find a broken endpoint.
+
+`resend(ids:)` and `resend_matching(preview:, filters:)` make Paystack deliver events again. **They were never called against the test API** (they would hit your endpoint), the docs say resending is not idempotent, and `resend_matching` has no default for `preview:` on purpose: call it with `preview: true` first, and make sure your endpoint dedupes before you resend anything.
 
 ## Test your endpoint locally
 
@@ -218,4 +247,4 @@ Behind a load balancer or CDN the socket address (`REMOTE_ADDR`) is the proxy, n
 
 ## Not verified
 
-No webhook was received from Paystack while writing this. Unverified: that the signature is made with the key of the mode that sent the event, the payload fields of every event except the one sample, which events carry an `id` and which only a `reference`, the live retry schedule in practice, and how your proxy reports the client IP. The retry schedule, header name, signature algorithm and IP list are as stated on Paystack's Webhooks documentation page.
+No webhook was received by code written for this skill. Unverified: that the signature is made with the key of the mode that sent the event, the payloads of every event not listed in the table above, live payloads, the live retry schedule in practice, how your proxy reports the client IP, and `resend` and `resend_matching` (never called). The retry schedule, header name, signature algorithm and IP list are as stated on Paystack's Webhooks documentation page.

@@ -60,7 +60,12 @@ module PaystackContract
       uri = URI(url)
       verb = method.to_s.downcase
       path, operation = find_operation(verb, uri.path)
-      return ["no operation #{verb.upcase} #{uri.path} in the spec"] unless operation
+      unless operation
+        documented = find_documented_only(verb, uri.path)
+        return check_documented_only(documented, uri.query, body, headers) if documented
+
+        return ["no operation #{verb.upcase} #{uri.path} in the spec"]
+      end
 
       key = "#{verb.upcase} #{path}"
       problems = []
@@ -71,6 +76,38 @@ module PaystackContract
     end
 
     private
+
+    # Operations the docs describe and the spec lacks (spec/fixtures/docs_only_operations.yml). Their
+    # requests still have to carry only the query and body parameters the docs list.
+    def docs_only_operations
+      @docs_only_operations ||= YAML.safe_load_file(File.expand_path("../fixtures/docs_only_operations.yml", __dir__))
+    end
+
+    def find_documented_only(verb, request_path)
+      segments = request_path.chomp("/").split("/")
+      candidates = docs_only_operations.select do |entry|
+        entry_verb, path = entry["operation"].split(" ", 2)
+        entry_verb.downcase == verb && matches?(path.split("/"), segments)
+      end
+      # a literal path beats a templated one: /events/lookup over /events/{id}
+      candidates.min_by { |entry| entry["operation"].scan("{").size }
+    end
+
+    def check_documented_only(entry, query, body, headers)
+      problems = check_headers(headers, body)
+      given_query = URI.decode_www_form(query.to_s).map(&:first)
+      (given_query - entry["query"]).each { |name| problems << "unknown query parameter `#{name}` (the docs list #{entry["query"].inspect})" }
+      if body && !body.to_s.empty?
+        sent = begin
+          JSON.parse(body)
+        rescue JSON::ParserError
+          nil
+        end
+        problems << "the body is not JSON" unless sent.is_a?(Hash)
+        (sent.keys - entry["body"]).each { |name| problems << "unknown body parameter `#{name}` (the docs list #{entry["body"].inspect})" } if sent.is_a?(Hash)
+      end
+      problems
+    end
 
     def find_operation(verb, request_path)
       segments = request_path.chomp("/").split("/")

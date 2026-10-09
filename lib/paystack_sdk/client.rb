@@ -27,6 +27,7 @@ require_relative "resources/integrations"
 require_relative "resources/virtual_terminals"
 require_relative "resources/direct_debits"
 require_relative "resources/terminals"
+require_relative "resources/webhook_events"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -342,6 +343,18 @@ module PaystackSdk
     #  `Terminals` resource.
     def terminals
       @terminals ||= Resources::Terminals.new(@connection)
+    end
+
+    # Provides access to the `WebhookEvents` resource: the log of webhooks Paystack sent you, with their
+    # delivery status, and a way to send them again. (Not in Paystack's OpenAPI spec; from its docs.)
+    #
+    # @return [PaystackSdk::Resources::WebhookEvents] An instance of the
+    #  `WebhookEvents` resource.
+    #
+    # @example
+    #   client.webhook_events.list(status: "Failed")
+    def webhook_events
+      @webhook_events ||= Resources::WebhookEvents.new(@connection)
     end
 
     # A short description that never includes the secret key. Ruby's default `inspect` prints every
