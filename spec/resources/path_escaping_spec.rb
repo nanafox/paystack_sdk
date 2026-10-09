@@ -83,11 +83,20 @@ RSpec.describe "escaping of path segments", contract: false do
     ["products.delete", :delete, "/product/", "", ->(c, v) { c.products.delete(id: v) }],
     ["orders.fetch", :get, "/order/", "", ->(c, v) { c.orders.fetch(id: v) }],
     ["orders.fetch_product_orders", :get, "/order/product/", "", ->(c, v) { c.orders.fetch_product_orders(id: v) }],
-    ["orders.validate", :get, "/order/", "/validate", ->(c, v) { c.orders.validate(code: v) }]
+    ["orders.validate", :get, "/order/", "/validate", ->(c, v) { c.orders.validate(code: v) }],
+    ["storefronts.fetch", :get, "/storefront/", "", ->(c, v) { c.storefronts.fetch(id: v) }],
+    ["storefronts.update", :put, "/storefront/", "", ->(c, v) { c.storefronts.update(id: v, description: "Harvest") }],
+    ["storefronts.delete", :delete, "/storefront/", "", ->(c, v) { c.storefronts.delete(id: v) }],
+    ["storefronts.verify_slug", :get, "/storefront/verify/", "", ->(c, v) { c.storefronts.verify_slug(slug: v) }],
+    ["storefronts.fetch_orders", :get, "/storefront/", "/order", ->(c, v) { c.storefronts.fetch_orders(id: v) }],
+    ["storefronts.add_products", :post, "/storefront/", "/product", ->(c, v) { c.storefronts.add_products(id: v, products: [1]) }],
+    ["storefronts.list_products", :get, "/storefront/", "/product", ->(c, v) { c.storefronts.list_products(id: v) }],
+    ["storefronts.publish", :post, "/storefront/", "/publish", ->(c, v) { c.storefronts.publish(id: v) }],
+    ["storefronts.duplicate", :post, "/storefront/", "/duplicate", ->(c, v) { c.storefronts.duplicate(id: v) }]
   ].freeze
 
   it "covers every method that puts a caller's value in a path" do
-    expect(calls.size).to eq(54)
+    expect(calls.size).to eq(63)
   end
 
   calls.each do |description, verb, before, after, call|

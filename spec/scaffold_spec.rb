@@ -192,39 +192,39 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
   end
 
   describe "creating files" do
-    let(:class_file) { "lib/paystack_sdk/resources/storefronts.rb" }
-    let(:spec_file) { "spec/resources/storefronts_spec.rb" }
+    let(:class_file) { "lib/paystack_sdk/resources/terminals.rb" }
+    let(:spec_file) { "spec/resources/terminals_spec.rb" }
 
     it "creates the class, the specs and the Client wiring, and says so" do
-      stdout, _, status = in_root("Storefront")
+      stdout, _, status = in_root("Terminal")
 
       expect(status).to be_success
       expect(stdout).to match(%r{create\s+#{class_file}})
       expect(stdout).to match(%r{create\s+#{spec_file}})
-      expect(stdout).to match(%r{insert\s+lib/paystack_sdk/client.rb\s+\(require resources/storefronts\)})
-      expect(stdout).to match(%r{insert\s+lib/paystack_sdk/client.rb\s+\(client.storefronts\)})
+      expect(stdout).to match(%r{insert\s+lib/paystack_sdk/client.rb\s+\(require resources/terminals\)})
+      expect(stdout).to match(%r{insert\s+lib/paystack_sdk/client.rb\s+\(client.terminals\)})
 
       expect(valid_ruby?(File.read(path(class_file)))).to be(true)
       expect(valid_ruby?(File.read(path(spec_file)))).to be(true)
       client = File.read(path("lib/paystack_sdk/client.rb"))
       expect(valid_ruby?(client)).to be(true)
-      expect(client).to include('require_relative "resources/storefronts"')
-      expect(client).to include("def storefronts\n      @storefronts ||= Resources::Storefronts.new(@connection)\n    end")
-      expect(client.index("def storefronts")).to be < client.index("\n    private\n")
+      expect(client).to include('require_relative "resources/terminals"')
+      expect(client).to include("def terminals\n      @terminals ||= Resources::Terminals.new(@connection)\n    end")
+      expect(client.index("def terminals")).to be < client.index("\n    private\n")
     end
 
     it "puts the accessor above Client's private section, so it stays public" do
-      in_root("Storefront")
+      in_root("Terminal")
 
       client = File.read(path("lib/paystack_sdk/client.rb"))
 
-      expect(client.index("def storefronts")).to be < client.index("\n    private\n")
+      expect(client.index("def terminals")).to be < client.index("\n    private\n")
       expect(valid_ruby?(client)).to be(true)
     end
 
     it "with --dry-run says what it would do and writes nothing" do
       before = File.read(path("lib/paystack_sdk/client.rb"))
-      stdout, _, status = in_root("Storefront", "--dry-run")
+      stdout, _, status = in_root("Terminal", "--dry-run")
 
       expect(status).to be_success
       expect(stdout).to match(%r{create\s+#{class_file}})
@@ -236,10 +236,10 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
     end
 
     it "is safe to run twice: everything is reported identical and nothing changes" do
-      in_root("Storefront")
+      in_root("Terminal")
       written = [class_file, spec_file, "lib/paystack_sdk/client.rb"].to_h { |file| [file, File.read(path(file))] }
 
-      stdout, = in_root("Storefront")
+      stdout, = in_root("Terminal")
 
       expect(stdout).to match(%r{identical\s+#{class_file}})
       expect(stdout).to match(%r{identical\s+#{spec_file}})
@@ -248,30 +248,30 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
     end
 
     it "does not overwrite a file that differs, unless --force" do
-      in_root("Storefront")
+      in_root("Terminal")
       File.write(path(class_file), "# my own edits\n")
 
-      stdout, = in_root("Storefront")
+      stdout, = in_root("Terminal")
       expect(stdout).to match(%r{conflict\s+#{class_file}.*--force})
       expect(File.read(path(class_file))).to eq("# my own edits\n")
 
-      stdout, = in_root("Storefront", "--force")
+      stdout, = in_root("Terminal", "--force")
       expect(stdout).to match(%r{force\s+#{class_file}})
-      expect(File.read(path(class_file))).to include("class Storefronts")
+      expect(File.read(path(class_file))).to include("class Terminals")
     end
 
     it "leaves Client alone when a file conflicts" do
       File.write(path(class_file).tap { |file| FileUtils.mkdir_p(File.dirname(file)) }, "# mine\n")
       before = File.read(path("lib/paystack_sdk/client.rb"))
 
-      stdout, = in_root("Storefront")
+      stdout, = in_root("Terminal")
 
       expect(stdout).to include("Client was not touched")
       expect(File.read(path("lib/paystack_sdk/client.rb"))).to eq(before)
     end
 
     it "with --skip-spec leaves the specs out" do
-      stdout, = in_root("Storefront", "--skip-spec")
+      stdout, = in_root("Terminal", "--skip-spec")
 
       expect(stdout).not_to include(spec_file)
       expect(stdout).to include("2. bundle exec standardrb")
@@ -301,31 +301,31 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
   end
 
   describe "--destroy" do
-    let(:class_file) { "lib/paystack_sdk/resources/storefronts.rb" }
-    let(:spec_file) { "spec/resources/storefronts_spec.rb" }
+    let(:class_file) { "lib/paystack_sdk/resources/terminals.rb" }
+    let(:spec_file) { "spec/resources/terminals_spec.rb" }
     let(:client_file) { "lib/paystack_sdk/client.rb" }
 
     it "undoes a scaffold exactly, down to the Client file" do
       original = File.read(path(client_file))
-      in_root("Storefront")
+      in_root("Terminal")
 
-      stdout, _, status = in_root("Storefront", "--destroy")
+      stdout, _, status = in_root("Terminal", "--destroy")
 
       expect(status).to be_success
       expect(stdout).to match(%r{remove\s+#{class_file}})
       expect(stdout).to match(%r{remove\s+#{spec_file}})
-      expect(stdout).to match(%r{remove\s+#{client_file}\s+\(require resources/storefronts\)})
-      expect(stdout).to match(%r{remove\s+#{client_file}\s+\(client.storefronts\)})
+      expect(stdout).to match(%r{remove\s+#{client_file}\s+\(require resources/terminals\)})
+      expect(stdout).to match(%r{remove\s+#{client_file}\s+\(client.terminals\)})
       expect(File.exist?(path(class_file))).to be(false)
       expect(File.exist?(path(spec_file))).to be(false)
       expect(File.read(path(client_file))).to eq(original)
     end
 
     it "with --dry-run says what it would remove and removes nothing" do
-      in_root("Storefront")
+      in_root("Terminal")
       scaffolded = File.read(path(client_file))
 
-      stdout, = in_root("Storefront", "--destroy", "--dry-run")
+      stdout, = in_root("Terminal", "--destroy", "--dry-run")
 
       expect(stdout).to match(%r{remove\s+#{class_file}})
       expect(stdout).to include("Dry run: nothing was removed.")
@@ -335,32 +335,32 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
     end
 
     it "refuses a file you have edited, and leaves Client alone, unless --force" do
-      in_root("Storefront")
+      in_root("Terminal")
       File.write(path(class_file), "# my own edits\n")
       scaffolded_client = File.read(path(client_file))
 
-      stdout, = in_root("Storefront", "--destroy")
+      stdout, = in_root("Terminal", "--destroy")
 
       expect(stdout).to match(%r{conflict\s+#{class_file}.*--force})
       expect(stdout).to include("Client was not touched")
       expect(File.read(path(class_file))).to eq("# my own edits\n")
       expect(File.read(path(client_file))).to eq(scaffolded_client)
 
-      stdout, = in_root("Storefront", "--destroy", "--force")
+      stdout, = in_root("Terminal", "--destroy", "--force")
 
       expect(stdout).to match(%r{force\s+#{class_file}})
       expect(File.exist?(path(class_file))).to be(false)
     end
 
     it "says skip for what is already gone, so it is safe to repeat" do
-      in_root("Storefront")
-      in_root("Storefront", "--destroy")
+      in_root("Terminal")
+      in_root("Terminal", "--destroy")
 
-      stdout, _, status = in_root("Storefront", "--destroy")
+      stdout, _, status = in_root("Terminal", "--destroy")
 
       expect(status).to be_success
       expect(stdout).to match(%r{skip\s+#{class_file}\s+\(not found\)})
-      expect(stdout).to match(/skip\s+#{client_file}\s+\(no client.storefronts\)/)
+      expect(stdout).to match(/skip\s+#{client_file}\s+\(no client.terminals\)/)
     end
 
     it "never removes a hand-written accessor, or the require it depends on" do
@@ -374,8 +374,8 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
   end
 
   describe "protecting your work" do
-    let(:class_file) { "lib/paystack_sdk/resources/storefronts.rb" }
-    let(:spec_file) { "spec/resources/storefronts_spec.rb" }
+    let(:class_file) { "lib/paystack_sdk/resources/terminals.rb" }
+    let(:spec_file) { "spec/resources/terminals_spec.rb" }
     let(:client_file) { "lib/paystack_sdk/client.rb" }
 
     def git(*args)
@@ -399,7 +399,7 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
       commit_everything
       before_client = File.read(path(client_file))
 
-      stdout, = in_root("Storefront", "--force")
+      stdout, = in_root("Terminal", "--force")
 
       expect(stdout).to match(%r{protected\s+#{class_file}.*tracked by git})
       expect(File.read(path(class_file))).to eq("# hand-written, committed\n")
@@ -413,7 +413,7 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
       File.write(path(class_file), "# hand-written, committed\n")
       commit_everything
 
-      stdout, = in_root("Storefront", "--destroy", "--force")
+      stdout, = in_root("Terminal", "--destroy", "--force")
 
       expect(stdout).to match(%r{protected\s+#{class_file}.*tracked by git})
       expect(stdout).to match(/git rm/)
@@ -421,42 +421,42 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
     end
 
     it "protects a tracked file even when it has uncommitted edits on top of the commit" do
-      in_root("Storefront")
+      in_root("Terminal")
       commit_everything
       File.write(path(class_file), "# edited after the commit\n")
 
-      stdout, = in_root("Storefront", "--destroy", "--force")
+      stdout, = in_root("Terminal", "--destroy", "--force")
 
       expect(stdout).to match(%r{protected\s+#{class_file}})
       expect(File.read(path(class_file))).to eq("# edited after the commit\n")
     end
 
     it "still removes a committed file that is exactly what the scaffold wrote, without --force" do
-      in_root("Storefront")
+      in_root("Terminal")
       commit_everything
 
-      stdout, = in_root("Storefront", "--destroy")
+      stdout, = in_root("Terminal", "--destroy")
 
       expect(stdout).to match(%r{remove\s+#{class_file}})
       expect(File.exist?(path(class_file))).to be(false)
     end
 
     it "backs up an untracked file you edited before --force replaces it, and says how much" do
-      in_root("Storefront")
+      in_root("Terminal")
       File.write(path(class_file), "# my edits\n# line two\n")
 
-      stdout, = in_root("Storefront", "--force")
+      stdout, = in_root("Terminal", "--force")
 
       expect(stdout).to match(%r{force\s+#{class_file}\s+\(2 lines replaced; backup tmp/scaffold-backups/})
-      expect(File.read(path(class_file))).to include("class Storefronts")
+      expect(File.read(path(class_file))).to include("class Terminals")
       expect(backups.map { |file| File.read(file) }).to include("# my edits\n# line two\n")
     end
 
     it "backs up an untracked file you edited before --destroy --force removes it" do
-      in_root("Storefront")
+      in_root("Terminal")
       File.write(path(class_file), "# my edits\n")
 
-      stdout, = in_root("Storefront", "--destroy", "--force")
+      stdout, = in_root("Terminal", "--destroy", "--force")
 
       expect(stdout).to match(%r{force\s+#{class_file}\s+\(1 lines removed; backup tmp/scaffold-backups/})
       expect(File.exist?(path(class_file))).to be(false)
@@ -464,10 +464,10 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
     end
 
     it "with --dry-run says it would back up, and changes and backs up nothing" do
-      in_root("Storefront")
+      in_root("Terminal")
       File.write(path(class_file), "# my edits\n")
 
-      stdout, = in_root("Storefront", "--destroy", "--force", "--dry-run")
+      stdout, = in_root("Terminal", "--destroy", "--force", "--dry-run")
 
       expect(stdout).to match(%r{force\s+#{class_file}\s+\(1 lines removed; would back up to tmp/scaffold-backups/})
       expect(File.read(path(class_file))).to eq("# my edits\n")
@@ -516,9 +516,9 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
 
     it "uses a names file you point it at" do
       names = File.join(root, "names.yml")
-      File.write(names, %("GET /storefront": all_storefronts\n))
+      File.write(names, %("GET /terminal": all_terminals\n))
 
-      expect(scaffold("Storefront", "--print", "--names", names).first).to include("def all_storefronts(")
+      expect(scaffold("Terminal", "--print", "--names", names).first).to include("def all_terminals(")
     end
 
     it "gives a path variable the keyword a hash entry names, without changing the path" do
@@ -574,30 +574,30 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
   describe "extension modules" do
     it "includes a hand-written extension for the resource when one exists" do
       FileUtils.mkdir_p(path("lib/paystack_sdk/resources/extensions"))
-      File.write(path("lib/paystack_sdk/resources/extensions/storefronts.rb"), "module PaystackSdk\n  module Resources\n    module Extensions\n      module Storefronts; end\n    end\n  end\nend\n")
+      File.write(path("lib/paystack_sdk/resources/extensions/terminals.rb"), "module PaystackSdk\n  module Resources\n    module Extensions\n      module Terminals; end\n    end\n  end\nend\n")
 
-      in_root("Storefront")
+      in_root("Terminal")
 
-      generated = File.read(path("lib/paystack_sdk/resources/storefronts.rb"))
-      expect(generated).to include('require_relative "extensions/storefronts"')
-      expect(generated).to include("include Extensions::Storefronts")
+      generated = File.read(path("lib/paystack_sdk/resources/terminals.rb"))
+      expect(generated).to include('require_relative "extensions/terminals"')
+      expect(generated).to include("include Extensions::Terminals")
     end
 
     it "leaves both lines out when there is none" do
-      in_root("Storefront")
+      in_root("Terminal")
 
-      generated = File.read(path("lib/paystack_sdk/resources/storefronts.rb"))
+      generated = File.read(path("lib/paystack_sdk/resources/terminals.rb"))
       expect(generated).not_to include("Extensions")
     end
   end
 
   describe "regenerating its own output" do
-    let(:class_file) { "lib/paystack_sdk/resources/storefronts.rb" }
+    let(:class_file) { "lib/paystack_sdk/resources/terminals.rb" }
     let(:names) { File.join(root, "names.yml") }
 
     before do
       git("init", "-q")
-      File.write(names, %("GET /storefront": all_storefronts\n))
+      File.write(names, %("GET /terminal": all_terminals\n))
     end
 
     def git(*args)
@@ -610,7 +610,7 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
     end
 
     it "marks what it writes as generated, with a digest of its contents" do
-      in_root("Storefront")
+      in_root("Terminal")
 
       generated = File.read(path(class_file))
       expect(generated).to include("# Generated by bin/paystack-scaffold")
@@ -618,33 +618,33 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
     end
 
     it "updates a committed file it wrote and nobody has edited, without --force" do
-      in_root("Storefront")
+      in_root("Terminal")
       commit_everything
 
-      stdout, _, status = in_root("Storefront", "--names", names)
+      stdout, _, status = in_root("Terminal", "--names", names)
 
       expect(status).to be_success
       expect(stdout).to match(%r{update\s+#{class_file}})
-      expect(File.read(path(class_file))).to include("def all_storefronts(")
+      expect(File.read(path(class_file))).to include("def all_terminals(")
     end
 
     it "protects a committed file once someone has edited it, even a single line" do
-      in_root("Storefront")
+      in_root("Terminal")
       edited = File.read(path(class_file)).sub("def list", "def list # tweaked\n      ")
       File.write(path(class_file), edited)
       commit_everything
 
-      stdout, = in_root("Storefront", "--names", names, "--force")
+      stdout, = in_root("Terminal", "--names", names, "--force")
 
       expect(stdout).to match(%r{protected\s+#{class_file}})
       expect(File.read(path(class_file))).to eq(edited)
     end
 
     it "removes an unedited generated file on --destroy even though the spec has moved on since" do
-      in_root("Storefront", "--names", names)
+      in_root("Terminal", "--names", names)
       commit_everything
 
-      stdout, = in_root("Storefront", "--destroy")
+      stdout, = in_root("Terminal", "--destroy")
 
       expect(stdout).to match(%r{remove\s+#{class_file}})
       expect(File.exist?(path(class_file))).to be(false)
