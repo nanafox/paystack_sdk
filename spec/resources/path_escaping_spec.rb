@@ -46,11 +46,21 @@ RSpec.describe "escaping of path segments", contract: false do
     ["splits.fetch", :get, "/split/", "", ->(c, v) { c.splits.fetch(id: v) }],
     ["splits.update", :put, "/split/", "", ->(c, v) { c.splits.update(id: v, active: false) }],
     ["splits.add_subaccount", :post, "/split/", "/subaccount/add", ->(c, v) { c.splits.add_subaccount(id: v, subaccount: "ACCT_1", share: 20) }],
-    ["splits.remove_subaccount", :post, "/split/", "/subaccount/remove", ->(c, v) { c.splits.remove_subaccount(id: v, subaccount: "ACCT_1") }]
+    ["splits.remove_subaccount", :post, "/split/", "/subaccount/remove", ->(c, v) { c.splits.remove_subaccount(id: v, subaccount: "ACCT_1") }],
+    ["disputes.fetch", :get, "/dispute/", "", ->(c, v) { c.disputes.fetch(id: v) }],
+    ["disputes.update", :put, "/dispute/", "", ->(c, v) { c.disputes.update(id: v, refund_amount: 1) }],
+    ["disputes.fetch_upload_url", :get, "/dispute/", "/upload_url", ->(c, v) { c.disputes.fetch_upload_url(id: v) }],
+    ["disputes.list_transaction", :get, "/dispute/transaction/", "", ->(c, v) { c.disputes.list_transaction(id: v) }],
+    ["disputes.resolve", :put, "/dispute/", "/resolve", lambda { |c, v|
+      c.disputes.resolve(id: v, resolution: "declined", message: "m", refund_amount: 1, uploaded_filename: "f")
+    }],
+    ["disputes.add_evidence", :post, "/dispute/", "/evidence", lambda { |c, v|
+      c.disputes.add_evidence(id: v, customer_email: "a@b.co", customer_name: "A", customer_phone: "1", service_details: "s")
+    }]
   ].freeze
 
   it "covers every method that puts a caller's value in a path" do
-    expect(calls.size).to eq(23)
+    expect(calls.size).to eq(29)
   end
 
   calls.each do |description, verb, before, after, call|

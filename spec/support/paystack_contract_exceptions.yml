@@ -328,3 +328,12 @@
   description: Not used when removing a subaccount; the docs do not list it, and Paystack removes the subaccount whatever share is sent.
   reason: Description only. The spec copies share from Add Subaccount; the docs list only subaccount. Confirmed against the Paystack test API on 2026-10-09, where removing a subaccount whose share was 30 with share 999 still returns "Subaccount removed".
   docs: https://paystack.com/docs/api/split/#remove-subaccount
+
+- operation: "GET /dispute/{id}/upload_url"
+  in: query
+  wire: upload_filename
+  spec: null
+  type: string
+  description: The file name, with its extension, that you want to upload (for example filename.pdf).
+  reason: Listed on the canonical Get Upload URL section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where it changes the response (upload_filename=a.pdf returned a signedUrl and fileName ending in .pdf; without it the file name has no extension).
+  docs: https://paystack.com/docs/api/dispute/#upload-url
