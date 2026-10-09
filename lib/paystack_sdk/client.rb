@@ -22,6 +22,7 @@ require_relative "resources/products"
 require_relative "resources/orders"
 require_relative "resources/storefronts"
 require_relative "resources/bulk_charges"
+require_relative "resources/apple_pay"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -297,6 +298,14 @@ module PaystackSdk
     #  `BulkCharges` resource.
     def bulk_charges
       @bulk_charges ||= Resources::BulkCharges.new(@connection)
+    end
+
+    # Provides access to the `ApplePay` resource.
+    #
+    # @return [PaystackSdk::Resources::ApplePay] An instance of the
+    #  `ApplePay` resource.
+    def apple_pay
+      @apple_pay ||= Resources::ApplePay.new(@connection)
     end
 
     private

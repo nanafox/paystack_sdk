@@ -167,8 +167,12 @@ def method_name(summary, tag)
   snake(kept.join("_"))
 end
 
+# Tags whose resource name should not get a plural "s" ("Apple Pay" is a product, not a collection).
+SINGULAR_TAGS = ["Apple Pay"].freeze
+
 def class_name(tag)
   base = tag.split.map(&:capitalize).join
+  return base if SINGULAR_TAGS.include?(tag)
   base.end_with?("s") ? base : "#{base}s"
 end
 

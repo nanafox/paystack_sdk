@@ -146,3 +146,11 @@
 "GET /bulkcharge/resume/{code}":
   keywords:
     code: batch_code
+
+# Apple Pay domains: registering or unregistering changes the account's Apple Pay domain configuration,
+# which is account-wide and public. Neither was called live while this resource was built (only the list
+# was), so both are described from the spec and docs only.
+"POST /apple-pay/domain":
+  note: "Registers a domain for Apple Pay on the whole account. This changes Apple Pay configuration that may also affect live mode, even with a test key (sk_test_). Not verified against the live API by this SDK: do not call it to try the API out."
+"DELETE /apple-pay/domain":
+  note: "Unregisters a domain from Apple Pay on the whole account. This changes Apple Pay configuration that may also affect live mode, even with a test key (sk_test_). Not verified against the live API by this SDK, including how Paystack reads the request body of a DELETE."
