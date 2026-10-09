@@ -117,7 +117,11 @@ module PaystackSdk
     # @example
     # ```ruby
     #   charges = client.charges
-    #   response = charges.mobile_money(payload)
+    #   response = charges.mobile_money(
+    #     email: "ama@example.com",
+    #     amount: 10000,
+    #     mobile_money: {phone: "0551234987", provider: "mtn"}
+    #   )
     # ```
     def charges
       @charges ||= Resources::Charges.new(@connection)

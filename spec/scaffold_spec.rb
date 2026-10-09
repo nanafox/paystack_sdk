@@ -97,6 +97,12 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
       expect(scaffold("Subaccount", "--print").first).to include('WIRE_NAMES = {per_page: "perPage"}')
     end
 
+    it "adds the body fields recorded as docs-only in the exceptions file" do
+      source = scaffold("Charge", "--print").first
+      expect(source).to include("        capitec_pay: nil\n      )")
+      expect(source).to include("            capitec_pay:\n")
+    end
+
     it "sends a body on DELETE as a body, and a JSON array body as given" do
       expect(scaffold("Apple Pay", "--print").first).to include('@connection.delete("/apple-pay/domain") { |request| request.body = wire_body }')
       expect(scaffold("Bulk Charge", "--print").first).to include('@connection.post("/bulkcharge", items)')

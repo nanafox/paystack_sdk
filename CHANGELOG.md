@@ -9,6 +9,9 @@
   - `fetch(id:)` replaces `fetch(transaction_id)`; `timeline(id:)` replaces `timeline(id_or_reference)`.
   - `list`, `totals` and `export` take named filters (`from`, `to`, `status`, `customer_id`, `settlement`, ...) instead of `**params`, so a misspelt filter now raises `ArgumentError`. `list` no longer defaults `per_page: 50, page: 1`; Paystack's own defaults apply.
   - The numeric customer filter on `list` and `export` is `customer_id:` (it sends Paystack's `customer`).
+- `Charges` is now generated from Paystack's OpenAPI spec and takes keyword arguments instead of payload hashes.
+  - `mobile_money(email:, amount:, mobile_money:, currency: nil, reference: nil, metadata: nil)` no longer accepts a hash; use `mobile_money(**params)` to migrate. It no longer sends `callback_url`, which neither Paystack's docs nor its spec list for `POST /charge` (the API does not validate it either).
+  - `submit_otp(otp:, reference:)` no longer accepts a hash.
 
 - `Banks` is regenerated from Paystack's OpenAPI spec, `Miscellaneous` is new, and `Verification` (`client.verification`) is removed. All take keyword arguments.
   - `verification.resolve_account(account_number:, bank_code:)` is now `banks.resolve_account_number(account_number:, bank_code:)`.
@@ -30,6 +33,9 @@
 ### Added
 
 - `transfer_recipients.bulk_create(batch:)` for `POST /transferrecipient/bulk`.
+- The rest of the Charge API: `charges.create`, `submit_pin`, `submit_phone`, `submit_birthday`, `submit_address` and `check_pending`. `create` takes the channel objects (`bank`, `mobile_money`, `ussd`, `eft`, `qr`, `bank_transfer`, `capitec_pay`) as keyword hashes, plus `currency`, `split_code` and `subaccount`, which Paystack documents and the test API honours although the OpenAPI spec omits them.
+- `charges.mobile_money` accepts the `mpesa_offline` and `mptill` providers Paystack documents, and an M-PESA Till `account` in place of `phone`.
+- `bin/paystack-scaffold` generates body parameters recorded as docs-only (`spec: null`) in `spec/support/paystack_contract_exceptions.yml`, as it already did for query parameters.
 - `transactions.export` accepts `currency`, `amount`, `settled` and `payment_page` (documented by Paystack, absent from the OpenAPI spec; confirmed to filter results against the test API) and `subaccount_code`. Paystack's docs also list `perPage` and `page` on Export, but the API ignores them, so the SDK does not offer them.
 - `PaystackSdk::Webhook` verifies Paystack webhook signatures (HMAC SHA512, constant-time) and parses events: `valid_signature?`, `verify!`, `construct_event`, `sign`, `trusted_ip?`, plus the documented `EVENTS` and `IP_ADDRESSES`. New errors: `WebhookError`, `InvalidSignatureError`, `InvalidPayloadError`.
 - `Response#meta` exposes the pagination metadata (`total`, `page`, `pageCount`, `perPage`) that list endpoints return.

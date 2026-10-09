@@ -196,6 +196,12 @@ def parameters_for(entry)
       prop = resolve(prop)
       params << Param.new(keyword: ruby_word(snake(name)), wire: name, required: flat["required"].include?(name), info: describe_schema(prop), description: one_line(prop["description"]), location: :body)
     end
+
+    # body fields Paystack documents but the spec omits (exception entries with no `spec`)
+    @exceptions.select { |e| e["operation"] == op_key && e["in"] == "body" && e["spec"].nil? }.each do |e|
+      info = {type: e["type"], format: nil, enum: nil, example: nil, schema: {"type" => e["type"]}}
+      params << Param.new(keyword: ruby_word(e["ruby"] || snake(e["wire"])), wire: e["wire"], required: false, info: info, description: one_line(e["description"]), location: :body)
+    end
   end
 
   params.sort_by.with_index { |p, i|
