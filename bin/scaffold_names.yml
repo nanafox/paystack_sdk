@@ -76,3 +76,29 @@
     id: dedicated_account_id
 # "Split Dedicated Account Transaction": it adds a split to an account (docs anchor #add-split); the pair of remove_split.
 "POST /dedicated_account/split": add_split
+
+# Payment Requests. The docs name the path variable id_or_code where the API takes the numeric ID or
+# the PRQ_ code (Fetch, Update, Finalize and Archive all accept both on the test API), and code on
+# Verify (only the code works) and Send Notification (not called live: it emails the customer).
+"GET /paymentrequest/{id}":
+  keywords:
+    id: id_or_code
+"PUT /paymentrequest/{id}":
+  keywords:
+    id: id_or_code
+"GET /paymentrequest/verify/{id}":
+  keywords:
+    id: code
+# "Send Notification": `send_notification` is also a keyword on create and finalize; the path says notify.
+"POST /paymentrequest/notify/{id}":
+  name: notify
+  keywords:
+    id: code
+# "Payment Request Total": `totals`, as on Transactions.
+"GET /paymentrequest/totals": totals
+"POST /paymentrequest/finalize/{id}":
+  keywords:
+    id: id_or_code
+"POST /paymentrequest/archive/{id}":
+  keywords:
+    id: id_or_code

@@ -177,7 +177,9 @@ module PaystackContract
       schema = request_body.dig("content", "application/json", "schema")
 
       if schema.nil?
-        return has_body ? ["this operation takes no request body"] : []
+        return [] if !has_body || docs_only_body?(body, key)
+
+        return ["this operation takes no request body"]
       end
       unless has_body
         # the spec rarely marks the body itself required, so judge by the schema's required fields
@@ -191,9 +193,27 @@ module PaystackContract
         return ["the request body is not valid JSON"]
       end
 
-      errors = openapi.ref(schema_pointer(path, verb)).validate(with_spec_names(parsed, key)).map { |e| e["error"] }
-      errors = errors.reject { |e| exception_error?(e, key) }
+      results = openapi.ref(schema_pointer(path, verb)).validate(with_spec_names(parsed, key)).reject { |e| optional_by_exception?(e, key) }
+      errors = results.map { |e| e["error"] }.reject { |e| exception_error?(e, key) }
       errors + unknown_fields(schema, parsed, key)
+    end
+
+    # A body on an operation the spec gives none is fine when it holds only fields the docs list
+    # (exception entries with no `spec`), for example send_notification on Finalize Payment Request.
+    def docs_only_body?(body, key)
+      parsed = JSON.parse(body.to_s)
+      allowed = exceptions_for(key, "body").select { |e| e["spec"].nil? }.map { |e| e["wire"] }
+      parsed.is_a?(Hash) && (parsed.empty? ? allowed.any? : (parsed.keys - allowed).empty?)
+    rescue JSON::ParserError
+      false
+    end
+
+    # A field the spec marks required but the API does not need (an exception with `required: false`).
+    def optional_by_exception?(result, key)
+      return false unless result["type"] == "required"
+
+      optional = exceptions_for(key, "body").select { |e| e["required"] == false }.flat_map { |e| [e["wire"], e["spec"]] }
+      (result.dig("details", "missing_keys") || []).all? { |name| optional.include?(name) }
     end
 
     def exception_error?(error, key)

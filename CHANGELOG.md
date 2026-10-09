@@ -11,6 +11,7 @@
 ### Fixed
 
 - `bin/paystack-scaffold` now adds a resource's `Client` accessor above `Client`'s private helpers, where it is public, instead of at the end of the class. It also finds the docs anchor of an operation whose cURL sample on the docs page calls another path (Split Dedicated Account Transaction), and corrects the `@see` link of `customers.direct_debit_activation_charge` to `#directdebit-activation-charge`.
+- `PaymentRequests` (`client.payment_requests`), generated from Paystack's OpenAPI spec: `create`, `list`, `fetch(id_or_code:)`, `update(id_or_code:)`, `verify(code:)`, `notify(code:)`, `totals`, `finalize(id_or_code:, send_notification: nil)` and `archive(id_or_code:)`. Checked against the Paystack test API, `create` does not require `amount` when `line_items` or `tax` are given (the spec says it is required), takes `metadata` as a Hash and `redirect_url` (both docs-only), and accepts a date as `due_date`; `list` filters by the numeric `customer_id:` and takes `include_archive:`.
 
 ## [0.2.0] - 2026-10-09
 

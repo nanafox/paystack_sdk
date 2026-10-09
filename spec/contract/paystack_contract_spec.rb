@@ -120,8 +120,22 @@ RSpec.describe PaystackContract, contract: false do
       expect(check(:post, "/charge", body: body)).to contain_exactly(match(/unknown body field `mobile_money.bogus`/))
     end
 
+    it "lets an exception excuse a field the spec requires but the API does not" do
+      # payment request amount: Paystack adds up line_items and tax when it is left out
+      body = {customer: "CUS_1", line_items: [{name: "Seat", amount: 2000}]}
+      expect(check(:post, "/paymentrequest", body: body)).to eq([])
+      expect(check(:post, "/paymentrequest", body: {amount: 2000}))
+        .to contain_exactly(match(/missing required properties: customer/))
+    end
+
     it "rejects a body on an operation that takes none" do
       expect(check(:get, "/bank", body: {a: 1})).to contain_exactly(match(/takes no request body/))
+    end
+
+    it "accepts a body of docs-only fields on an operation the spec gives none" do
+      # Finalize Payment Request: the docs list send_notification; the spec has no body
+      expect(check(:post, "/paymentrequest/finalize/PRQ_1", body: {send_notification: false})).to eq([])
+      expect(check(:post, "/paymentrequest/finalize/PRQ_1", body: {bogus: 1})).to contain_exactly(match(/takes no request body/))
     end
 
     it "rejects a missing body where one is required" do

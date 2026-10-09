@@ -65,11 +65,19 @@ RSpec.describe "escaping of path segments", contract: false do
     ["subscriptions.generate_update_link", :get, "/subscription/", "/manage/link", ->(c, v) { c.subscriptions.generate_update_link(code: v) }],
     ["subscriptions.send_update_link", :post, "/subscription/", "/manage/email", ->(c, v) { c.subscriptions.send_update_link(code: v) }],
     ["dedicated_virtual_accounts.fetch", :get, "/dedicated_account/", "", ->(c, v) { c.dedicated_virtual_accounts.fetch(dedicated_account_id: v) }],
-    ["dedicated_virtual_accounts.deactivate", :delete, "/dedicated_account/", "", ->(c, v) { c.dedicated_virtual_accounts.deactivate(dedicated_account_id: v) }]
+    ["dedicated_virtual_accounts.deactivate", :delete, "/dedicated_account/", "", ->(c, v) { c.dedicated_virtual_accounts.deactivate(dedicated_account_id: v) }],
+    ["payment_requests.fetch", :get, "/paymentrequest/", "", ->(c, v) { c.payment_requests.fetch(id_or_code: v) }],
+    ["payment_requests.update", :put, "/paymentrequest/", "", ->(c, v) { c.payment_requests.update(id_or_code: v, description: "Dues") }],
+    ["payment_requests.verify", :get, "/paymentrequest/verify/", "", ->(c, v) { c.payment_requests.verify(code: v) }],
+    ["payment_requests.notify", :post, "/paymentrequest/notify/", "", ->(c, v) { c.payment_requests.notify(code: v) }],
+    ["payment_requests.finalize", :post, "/paymentrequest/finalize/", "", lambda { |c, v|
+      c.payment_requests.finalize(id_or_code: v, send_notification: false)
+    }],
+    ["payment_requests.archive", :post, "/paymentrequest/archive/", "", ->(c, v) { c.payment_requests.archive(id_or_code: v) }]
   ].freeze
 
   it "covers every method that puts a caller's value in a path" do
-    expect(calls.size).to eq(38)
+    expect(calls.size).to eq(44)
   end
 
   calls.each do |description, verb, before, after, call|

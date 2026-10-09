@@ -16,6 +16,7 @@ require_relative "resources/balances"
 require_relative "resources/plans"
 require_relative "resources/subscriptions"
 require_relative "resources/dedicated_virtual_accounts"
+require_relative "resources/payment_requests"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -243,6 +244,14 @@ module PaystackSdk
     #  `DedicatedVirtualAccounts` resource.
     def dedicated_virtual_accounts
       @dedicated_virtual_accounts ||= Resources::DedicatedVirtualAccounts.new(@connection)
+    end
+
+    # Provides access to the `PaymentRequests` resource.
+    #
+    # @return [PaystackSdk::Resources::PaymentRequests] An instance of the
+    #  `PaymentRequests` resource.
+    def payment_requests
+      @payment_requests ||= Resources::PaymentRequests.new(@connection)
     end
 
     private

@@ -11,7 +11,8 @@
 #   spec:      the name the OpenAPI spec uses for the same parameter; null when the spec omits it
 #              (a docs-only parameter, which also needs `type` and `description`)
 #   type:      optional; the type to check the value against when the docs and spec disagree on it
-#   required:  optional; true when the docs and the API require a parameter the spec marks optional
+#   required:  optional; true when the docs and the API require a parameter the spec marks optional,
+#              false (body fields only) when the API accepts a request without one the spec marks required
 #   enum:      optional; the allowed values, when the API accepts a different list than the spec's
 #   ruby:      optional; the idiomatic Ruby keyword when it is not just the snake_case of `wire`
 #   reason / docs: why, and where it was confirmed
@@ -429,6 +430,85 @@
   docs: https://paystack.com/docs/api/plan/#list
 
 - operation: "GET /subscription"
+
+- operation: "POST /paymentrequest"
+  in: body
+  wire: amount
+  spec: amount
+  required: false
+  description: The amount in the subunit. Leave it out when you send line_items or tax; Paystack adds those up.
+  reason: The spec marks amount required; the docs say it is for when line items and tax are not given, and their own cURL sample sends none. Confirmed against the Paystack test API on 2026-10-09, where a request with line_items [{amount 2000, quantity 2}] and tax [{amount 300}] and no amount was created with amount 4300, a draft with neither was created with amount 0, and a non-draft with neither returned 400 "Amount was not passed or could not be extrapolated from line items."
+  docs: https://paystack.com/docs/api/payment-request/#create
+
+- operation: "POST /paymentrequest"
+  in: body
+  wire: line_items
+  spec: line_items
+  description: 'Line items, each a Hash such as {name: "item 1", amount: 2000, quantity: 1} (amount in the subunit).'
+  reason: Description only. The docs call it an "Array of Strings" but show objects; the spec says an array of objects. Confirmed against the Paystack test API on 2026-10-09, where [{"name":"item 1","amount":2000,"quantity":2}] is stored as given and counts 4000 towards the amount.
+  docs: https://paystack.com/docs/api/payment-request/#create
+
+- operation: "POST /paymentrequest"
+  in: body
+  wire: tax
+  spec: tax
+  description: 'Taxes, each a Hash such as {name: "VAT", amount: 2000} (amount in the subunit).'
+  reason: Description only. The docs call it an "Array of Strings" but show objects; the spec says an array of objects. Confirmed against the Paystack test API on 2026-10-09, where [{"name":"VAT","amount":300}] is stored as given and added to the amount.
+  docs: https://paystack.com/docs/api/payment-request/#create
+
+- operation: "POST /paymentrequest"
+  in: body
+  wire: due_date
+  spec: due_date
+  type: string
+  description: ISO 8601 date or date-time the request is due, for example 2026-12-31 or 2026-12-31T23:00:00Z.
+  reason: The spec requires a date-time; the docs' own sample sends a date (2020-07-08). Confirmed against the Paystack test API on 2026-10-09, where 2026-12-31 (stored as 2026-12-31T00:00:00.000Z) and 2026-12-31T23:00:00Z are accepted and 31/12/2026 is refused with 400 "Due date is not in a valid format. Please pass a valid ISO 8601 string".
+  docs: https://paystack.com/docs/api/payment-request/#create
+
+- operation: "POST /paymentrequest"
+  in: body
+  wire: metadata
+  spec: null
+  type: object
+  description: A Hash of custom data, stored on the payment request.
+  reason: Listed on the docs' Create Payment Request section (as "Stringified JSON") but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where a JSON string is refused with 400 '"metadata" must be of type object' and {"probe":"a"} is stored and returned as metadata.
+  docs: https://paystack.com/docs/api/payment-request/#create
+
+- operation: "POST /paymentrequest"
+  in: body
+  wire: redirect_url
+  spec: null
+  type: string
+  description: A URL for Paystack to redirect to after a successful payment.
+  reason: Listed on the docs' Create Payment Request section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where redirect_url https://example.com/done is stored and returned on the payment request (null without it). The redirect itself was not observed (no payment was made).
+  docs: https://paystack.com/docs/api/payment-request/#create
+
+- operation: "PUT /paymentrequest/{id}"
+  in: body
+  wire: line_items
+  spec: line_items
+  description: 'Line items, each a Hash such as {name: "item 1", amount: 2000, quantity: 1} (amount in the subunit).'
+  reason: Description only, as on Create. Confirmed against the Paystack test API on 2026-10-09, where updating a draft with line_items [{amount 1000, quantity 3}] and tax [{amount 50}] set its amount to 3050.
+  docs: https://paystack.com/docs/api/payment-request/#update
+
+- operation: "PUT /paymentrequest/{id}"
+  in: body
+  wire: tax
+  spec: tax
+  description: 'Taxes, each a Hash such as {name: "VAT", amount: 2000} (amount in the subunit).'
+  reason: Description only, as on Create. Confirmed against the Paystack test API on 2026-10-09 (see line_items).
+  docs: https://paystack.com/docs/api/payment-request/#update
+
+- operation: "PUT /paymentrequest/{id}"
+  in: body
+  wire: due_date
+  spec: due_date
+  type: string
+  description: ISO 8601 date or date-time the request is due, for example 2026-12-31 or 2026-12-31T23:00:00Z.
+  reason: The spec requires a date-time; the docs' own sample sends a date (2017-05-10). Confirmed against the Paystack test API on 2026-10-09, where 2027-02-01 and 2027-01-15T10:30:00Z are both accepted.
+  docs: https://paystack.com/docs/api/payment-request/#update
+
+- operation: "GET /paymentrequest"
   in: query
   wire: customer
   spec: customer
@@ -444,3 +524,72 @@
   ruby: plan_id
   reason: Naming only; the wire name and integer type match the spec. Confirmed against the Paystack test API on 2026-10-09, where plan=<numeric id> returns the plan's subscriptions and the plan's code (PLN_...) returns none. The Ruby keyword is plan_id because it takes the numeric ID, not the plan code that create takes.
   docs: https://paystack.com/docs/api/subscription/#list
+
+  reason: The spec types customer as a string ("Customer ID"). Confirmed against the Paystack test API on 2026-10-09, where customer=<numeric id> returns that customer's three payment requests and customer=<CUS_ code> returns none. The Ruby keyword is customer_id, as on List Transactions, because it takes the numeric ID.
+  docs: https://paystack.com/docs/api/payment-request/#list
+
+- operation: "GET /paymentrequest"
+  in: query
+  wire: include_archive
+  spec: null
+  type: boolean
+  description: Pass true to include archived payment requests. Paystack includes them whenever the parameter is sent, whatever its value, so leave it out (nil) rather than passing false.
+  reason: Listed on the docs' List Payment Requests section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09 with two archived and three live requests, where the list without it returns three and include_archive=true, =1 and also =false each return all five.
+  docs: https://paystack.com/docs/api/payment-request/#list
+
+- operation: "POST /paymentrequest/finalize/{id}"
+  in: body
+  wire: send_notification
+  spec: null
+  type: boolean
+  description: Whether Paystack emails the customer; defaults to true.
+  reason: Listed on the docs' Finalize Payment Request section ("Defaults to true") but the spec gives Finalize no body. The Paystack test API accepted {"send_notification":false} on 2026-10-09 and finalized the request (by code and by numeric ID) with an empty notifications list. That it suppresses the email was not observed; proving it would mean sending one.
+  docs: https://paystack.com/docs/api/payment-request/#finalize
+
+- operation: "GET /paymentrequest/{id}"
+  in: path
+  wire: id
+  spec: id
+  type: string
+  reason: The docs name the path variable id_or_code, a string; the spec says an integer ID. Confirmed against the Paystack test API on 2026-10-09, where the numeric ID and the PRQ_ code both return the payment request.
+  docs: https://paystack.com/docs/api/payment-request/#fetch
+
+- operation: "PUT /paymentrequest/{id}"
+  in: path
+  wire: id
+  spec: id
+  type: string
+  reason: The docs name the path variable id_or_code, a string; the spec says an integer ID. Confirmed against the Paystack test API on 2026-10-09, where updates by numeric ID and by PRQ_ code both succeed.
+  docs: https://paystack.com/docs/api/payment-request/#update
+
+- operation: "GET /paymentrequest/verify/{id}"
+  in: path
+  wire: id
+  spec: id
+  type: string
+  reason: The docs name the path variable code (Payment Request code); the spec says an integer ID. Confirmed against the Paystack test API on 2026-10-09, where /paymentrequest/verify/<PRQ_ code> returns a finalized request and the numeric ID returns 400 "Slug is invalid" (as does the code of a draft).
+  docs: https://paystack.com/docs/api/payment-request/#verify
+
+- operation: "POST /paymentrequest/notify/{id}"
+  in: path
+  wire: id
+  spec: id
+  type: string
+  reason: The docs name the path variable code, a string (Payment Request code); the spec says an integer ID. Not called on the test API because it emails the customer; every sibling path (fetch, update, verify, finalize, archive) takes the PRQ_ code on the test API (2026-10-09).
+  docs: https://paystack.com/docs/api/payment-request/#send-notification
+
+- operation: "POST /paymentrequest/finalize/{id}"
+  in: path
+  wire: id
+  spec: id
+  type: string
+  reason: The docs' parameter table says code and their cURL sample says id_or_code; the spec says an integer ID. Confirmed against the Paystack test API on 2026-10-09, where finalizing by PRQ_ code and by numeric ID both succeed.
+  docs: https://paystack.com/docs/api/payment-request/#finalize
+
+- operation: "POST /paymentrequest/archive/{id}"
+  in: path
+  wire: id
+  spec: id
+  type: string
+  reason: The docs' parameter table says code and their cURL sample says id_or_code; the spec says an integer ID. Confirmed against the Paystack test API on 2026-10-09, where archiving by PRQ_ code and by numeric ID both return "Payment request has been archived" and an unknown code returns 400 "Payment request code is invalid".
+  docs: https://paystack.com/docs/api/payment-request/#archive

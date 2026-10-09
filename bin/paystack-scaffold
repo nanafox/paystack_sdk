@@ -220,11 +220,15 @@ def parameters_for(entry)
       info[:type] = exc["type"] if exc && exc["type"]
       info[:enum] = exc["enum"] if exc && exc["enum"]
       description = one_line((exc && exc["description"]) || prop["description"])
-      required = flat["required"].include?(name) || !!(exc && exc["required"])
+      # an exception's `required` (true or false) settles it; otherwise the spec does
+      required = exc&.key?("required") ? exc["required"] : flat["required"].include?(name)
       params << Param.new(keyword: ruby_word((exc && exc["ruby"]) || snake(wire)), wire: wire, required: required, info: info, description: description, location: :body)
     end
+  end
 
-    # body fields Paystack documents but the spec omits (exception entries with no `spec`)
+  # body fields Paystack documents but the spec omits (exception entries with no `spec`), also on an
+  # operation the spec gives no body at all
+  unless body && resolve(body)["type"] == "array"
     @exceptions.select { |e| e["operation"] == op_key && e["in"] == "body" && e["spec"].nil? }.each do |e|
       info = {type: e["type"], format: nil, enum: nil, example: nil, schema: {"type" => e["type"]}}
       params << Param.new(keyword: ruby_word(e["ruby"] || snake(e["wire"])), wire: e["wire"], required: false, info: info, description: one_line(e["description"]), location: :body)
