@@ -66,6 +66,50 @@ RSpec.describe PaystackSdk::Response do
     end
   end
 
+  describe "#dig" do
+    let(:body) do
+      {
+        "status" => true, "message" => "ok",
+        "data" => {"reference" => "a", "paid_at" => nil, "flag" => false, "zero" => 0,
+                   "authorization" => {"authorization_code" => "AUTH_x", "exp" => [1, 2]}, "rows" => [{"id" => 7}]}
+      }
+    end
+
+    it "reads a nested value with string or symbol keys" do
+      expect(response.dig(:authorization, :authorization_code)).to eq("AUTH_x")
+      expect(response.dig("authorization", "authorization_code")).to eq("AUTH_x")
+    end
+
+    it "returns nil, not an error, when a key anywhere along the path is missing" do
+      expect(response.dig(:authorization, :missing)).to be_nil
+      expect(response.dig(:nope, :deeper)).to be_nil
+      expect(response.dig(:paid_at)).to be_nil
+      expect(response.dig(:reference, :x)).to be_nil
+    end
+
+    it "keeps false and zero, which are values and not missing" do
+      expect(response.dig(:flag)).to be(false)
+      expect(response.dig(:zero)).to eq(0)
+      expect(response.dig(:flag, :x)).to be_nil
+    end
+
+    it "indexes an Array with an Integer and is nil past the end" do
+      expect(response.dig(:rows, 0, :id)).to eq(7)
+      expect(response.dig(:authorization, :exp, 1)).to eq(2)
+      expect(response.dig(:rows, 5, :id)).to be_nil
+      expect(response.dig(:rows, :id)).to be_nil
+    end
+
+    it "returns the plain value, not a Response, and needs at least one key" do
+      expect(response.dig(:authorization)).to be_a(Hash)
+      expect { response.dig }.to raise_error(ArgumentError, /at least one key/)
+    end
+
+    it "leaves dot access raising for a key that is not there" do
+      expect { response.not_a_field }.to raise_error(NoMethodError)
+    end
+  end
+
   describe "#key?" do
     it "is true for present keys given as symbols or strings" do
       expect(response.key?(:reference)).to be(true)

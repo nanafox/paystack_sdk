@@ -85,6 +85,23 @@ module PaystackSdk
       end
     end
 
+    # Validates a numeric identifier, such as a customer or plan ID. Paystack answers with an empty
+    # list and no error when a code (`CUS_...`) is passed where it filters by the numeric ID, so a wrong
+    # value would otherwise look like "no results". An Integer, or a string of digits, passes.
+    #
+    # @param value [Integer, String, nil] The identifier to validate
+    # @param name [String] Name of the parameter for error messages
+    # @param allow_nil [Boolean] Whether nil is acceptable (default: true)
+    # @raise [PaystackSdk::MissingParamError] If value is nil and nil is not allowed
+    # @raise [PaystackSdk::InvalidValueError] If value is not a positive whole number
+    def validate_numeric_id!(value:, name: "Parameter", allow_nil: true)
+      if value.nil?
+        raise PaystackSdk::MissingParamError.new(name) unless allow_nil
+      elsif !(value.is_a?(Integer) || value.is_a?(String)) || !value.to_s.match?(/\A[1-9]\d*\z/)
+        raise PaystackSdk::InvalidValueError.new(name, "must be the numeric ID (for example 123456), not a code or a name")
+      end
+    end
+
     # Validates a transaction reference format.
     #
     # @param reference [String] The reference to validate

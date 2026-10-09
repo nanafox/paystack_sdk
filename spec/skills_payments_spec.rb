@@ -58,7 +58,7 @@ RSpec.describe "what paystack-sdk-payments says", contract: false do
       end
     end
 
-    it "sends channels as an Array and metadata as a JSON object, and returns authorization_url" do
+    it "sends channels as an Array and metadata as a stringified JSON object (numbers keep their type), and returns authorization_url" do
       stub_json(:post, "/transaction/initialize", {status: true, message: "Authorization URL created",
         data: {authorization_url: "https://checkout.paystack.com/abc", access_code: "abc", reference: "pay-1"}})
 
@@ -68,7 +68,7 @@ RSpec.describe "what paystack-sdk-payments says", contract: false do
       expect(response.authorization_url).to eq("https://checkout.paystack.com/abc")
       expect(WebMock).to have_requested(:post, "https://api.paystack.co/transaction/initialize").with { |req|
         body = JSON.parse(req.body)
-        body["channels"] == ["card", "mobile_money"] && body["metadata"] == {"payment_id" => 7} && body["amount"] == 5000
+        body["channels"] == ["card", "mobile_money"] && JSON.parse(body["metadata"]) == {"payment_id" => 7} && body["amount"] == 5000
       }
     end
 
@@ -260,6 +260,10 @@ RSpec.describe "what paystack-sdk-payments says", contract: false do
 
       expect(response.success?).to be(false)
       expect(response.error_message).to eq("Transaction not found")
+    end
+
+    it "refuses a CUS_ code where list takes the numeric customer_id" do
+      expect { client.transactions.list(customer_id: "CUS_abc123") }.to raise_error(PaystackSdk::InvalidValueError, /numeric ID/)
     end
 
     it "sends per_page as perPage and customer_id as customer, formats dates, and gives rows and meta" do
