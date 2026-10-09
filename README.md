@@ -14,7 +14,11 @@ The `paystack_sdk` gem provides a simple and intuitive interface for interacting
     - [List Transactions](#list-transactions)
     - [Fetch a Transaction](#fetch-a-transaction)
     - [Get Transaction Totals](#get-transaction-totals)
-  - [Charges (Mobile Money)](#charges-mobile-money)
+  - [Charges](#charges)
+    - [Create a Mobile Money Charge](#create-a-mobile-money-charge)
+    - [Create a Charge on Another Channel](#create-a-charge-on-another-channel)
+    - [Complete a Charge](#complete-a-charge)
+    - [Check a Pending Charge](#check-a-pending-charge)
   - [Customers](#customers)
     - [Create a Customer](#create-a-customer)
     - [List Customers](#list-customers)
@@ -202,13 +206,15 @@ else
 end
 ```
 
-### Charges (Mobile Money)
+### Charges
 
-Initiate Mobile Money payments using the Charges API. This channel is available to businesses in Ghana, Kenya, and Côte d'Ivoire. See the Paystack guide: [Mobile Money](https://paystack.com/docs/payments/payment-channels/#mobile-money).
-
-Supported providers (case-insensitive): `mtn`, `atl` (ATMoney/Airtel Money), `vod` (Vodafone), `mpesa`, `orange`, `wave`.
+The Charge API lets you pick the payment channel yourself instead of sending the customer to Checkout: a saved card authorization, a bank account, USSD, mobile money, QR, EFT, Pay with Transfer or Capitec Pay. Many charges need one more step from the customer (a PIN, OTP, phone number, birthday or address) before they complete. See the Paystack docs: [Charge API](https://paystack.com/docs/api/charge/) and [Payment Channels](https://paystack.com/docs/payments/payment-channels/).
 
 #### Create a Mobile Money Charge
+
+Mobile money is available to businesses in Ghana, Kenya and Côte d'Ivoire. `mobile_money` checks the `mobile_money` object (phone or till account, and a known provider) and sends it with `create`.
+
+Supported providers (case-insensitive): `mtn`, `atl` (ATMoney/Airtel Money), `vod` (Telecel, formerly Vodafone), `mpesa`, `mpesa_offline`, `mptill` (M-PESA Till: send `account:`, the till number, instead of `phone:`), `orange`, `wave`.
 
 ```ruby
 paystack = PaystackSdk::Client.new(secret_key: "sk_test_xxx")
@@ -216,10 +222,10 @@ paystack = PaystackSdk::Client.new(secret_key: "sk_test_xxx")
 response = paystack.charges.mobile_money(
   email: "customer@email.com",
   amount: 100,             # smallest unit (pesewas/cent)
-  currency: "GHS",        # e.g., GHS, KES, XOF
+  currency: "GHS",         # optional; Paystack uses your integration's currency without it
   mobile_money: {
     phone: "0551234987",
-    provider: "mtn"       # mtn | atl | vod | mpesa | orange | wave
+    provider: "mtn"        # mtn | atl | vod | mpesa | mpesa_offline | mptill | orange | wave
   }
 )
 
@@ -241,20 +247,60 @@ else
 end
 ```
 
-#### Submit OTP (e.g., Vodafone voucher)
+#### Create a Charge on Another Channel
+
+`create` takes one channel object (or an `authorization_code`) as a keyword hash and sends it as Paystack documents it.
 
 ```ruby
-otp_response = paystack.charges.submit_otp(
-  reference: "r13havfcdt7btcm",
-  otp: "123456"
+# A returning customer's saved card
+paystack.charges.create(email: "customer@email.com", amount: 10000, authorization_code: "AUTH_xxxx")
+
+# A bank account (Paystack may then ask for the customer's birthday or an OTP)
+paystack.charges.create(
+  email: "customer@email.com",
+  amount: 10000,
+  bank: {code: "057", account_number: "0000000000"},
+  birthday: Date.new(1995, 12, 23) # or "1995-12-23"
 )
 
-puts otp_response.status # => "success" when authorized
+# USSD (Nigeria), Pay with Transfer, and QR or EFT (South Africa)
+paystack.charges.create(email: "customer@email.com", amount: 10000, ussd: {type: "737"})
+paystack.charges.create(email: "customer@email.com", amount: 10000, bank_transfer: {account_expires_at: "2026-10-10T12:00:00Z"})
+paystack.charges.create(email: "customer@email.com", amount: 10000, currency: "ZAR", qr: {provider: "scan-to-pay"})
+paystack.charges.create(email: "customer@email.com", amount: 10000, currency: "ZAR", eft: {provider: "ozow"})
+
+# Send the payment through a split or to a subaccount
+paystack.charges.create(email: "customer@email.com", amount: 10000, authorization_code: "AUTH_xxxx", split_code: "SPL_xxxx")
 ```
 
-#### Verify after timeout or via webhook
+#### Complete a Charge
 
-For offline flows, listen for `charge.success` webhooks. You may also verify after the provider timeout window. Note: `transactions.verify` expects a transaction reference (often the same `reference` you supplied when creating the charge once it converts to a transaction):
+When the response asks for more from the customer (read `response.status` and `response.display_text`), send it with the charge's `reference`:
+
+```ruby
+paystack.charges.submit_pin(pin: "1234", reference: "5bwib5v6anhe9xa")
+paystack.charges.submit_otp(otp: "123456", reference: "5bwib5v6anhe9xa") # e.g. a Vodafone voucher
+paystack.charges.submit_phone(phone: "08012345678", reference: "5bwib5v6anhe9xa")
+paystack.charges.submit_birthday(birthday: "1961-09-21", reference: "5bwib5v6anhe9xa")
+paystack.charges.submit_address(
+  address: "140 N 2ND ST",
+  city: "Stroudsburg",
+  state: "PA",
+  zip_code: "18360",
+  reference: "7c7rpkqpc0tijs8"
+)
+```
+
+#### Check a Pending Charge
+
+If a charge comes back `pending`, or a `/charge` call failed with an exception, wait at least 10 seconds, then check it (Paystack warns that checking too early returns more `pending` results):
+
+```ruby
+response = paystack.charges.check_pending(reference: "5bwib5v6anhe9xa")
+puts response.status
+```
+
+For offline flows such as mobile money, listen for the `charge.success` webhook, and confirm it with `transactions.verify(reference:)` before giving value:
 
 ```ruby
 verify = paystack.transactions.verify(reference: "r13havfcdt7btcm")

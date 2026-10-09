@@ -157,3 +157,57 @@
   enum: [GHS, KES, NGN, ZAR, USD]
   reason: The spec lists four currencies; the SDK has always accepted USD as well. Confirmed against the Paystack test API on 2026-10-09, where currency=USD&country=ghana&perPage=1 returns a USD bank (Absa Bank Ghana Limited) while currency=XXX returns an empty list. The docs only say "one of the supported currency".
   docs: https://paystack.com/docs/api/miscellaneous/#bank
+
+- operation: "POST /charge"
+  in: body
+  wire: currency
+  spec: null
+  type: string
+  description: The currency to charge in (GHS, KES and so on); Paystack uses your integration's currency when it is left out.
+  reason: Sent in the Mobile Money, M-PESA and EFT examples of Paystack's payment channels guide; absent from the spec and from the Create Charge parameter table. Confirmed against the Paystack test API on 2026-10-09 (a GHS integration), where a mobile_money charge with currency GHS succeeds and the same charge with KES or XYZ is refused with "Invalid provider".
+  docs: https://paystack.com/docs/payments/payment-channels/#mobile-money
+
+- operation: "POST /charge"
+  in: body
+  wire: split_code
+  spec: null
+  type: string
+  description: The split code (SPL_...) of a previously created split.
+  reason: Listed on the canonical Create Charge section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where an unknown split code is refused with 404 "Invalid Split code.".
+  docs: https://paystack.com/docs/api/charge/#create
+
+- operation: "POST /charge"
+  in: body
+  wire: subaccount
+  spec: null
+  type: string
+  description: The code (ACCT_...) of the subaccount that owns the payment.
+  reason: Listed on the canonical Create Charge section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where an unknown subaccount code is refused with 404 "Invalid Subaccount.".
+  docs: https://paystack.com/docs/api/charge/#create
+
+- operation: "POST /charge"
+  in: body
+  wire: bank_transfer
+  spec: null
+  type: object
+  description: Settings for the Pay with Transfer and Pesalink channel (account_expires_at, the expiry time of the account).
+  reason: Listed on the canonical Create Charge section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where a charge with only a bank_transfer object returns status pending_bank_transfer (with no channel object at all, Paystack refuses the charge).
+  docs: https://paystack.com/docs/api/charge/#create
+
+- operation: "POST /charge"
+  in: body
+  wire: qr
+  spec: null
+  type: object
+  description: The QR provider details (provider, scan-to-pay being the only one); South Africa only.
+  reason: Listed on the canonical Create Charge section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where a charge with only a qr object is attempted ("scan-to-pay QR payment not supported for this transaction" on a GHS integration) instead of being refused for lacking a channel object.
+  docs: https://paystack.com/docs/api/charge/#create
+
+- operation: "POST /charge"
+  in: body
+  wire: capitec_pay
+  spec: null
+  type: object
+  description: The Capitec Pay account holder (identifier_key, one of CELLPHONE, IDNUMBER or ACCOUNTNUMBER, and identifier_value); South Africa only.
+  reason: Listed on the canonical Create Charge section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where a charge with only a capitec_pay object is refused with "Integration is not eligible for Capitec Pay" instead of for lacking a channel object.
+  docs: https://paystack.com/docs/api/charge/#create
