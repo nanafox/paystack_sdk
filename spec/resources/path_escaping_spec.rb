@@ -80,11 +80,14 @@ RSpec.describe "escaping of path segments", contract: false do
     ["pages.add_products", :post, "/page/", "/product", ->(c, v) { c.pages.add_products(id: v, products: [1]) }],
     ["products.fetch", :get, "/product/", "", ->(c, v) { c.products.fetch(id: v) }],
     ["products.update", :put, "/product/", "", ->(c, v) { c.products.update(id: v, price: 100) }],
-    ["products.delete", :delete, "/product/", "", ->(c, v) { c.products.delete(id: v) }]
+    ["products.delete", :delete, "/product/", "", ->(c, v) { c.products.delete(id: v) }],
+    ["orders.fetch", :get, "/order/", "", ->(c, v) { c.orders.fetch(id: v) }],
+    ["orders.fetch_product_orders", :get, "/order/product/", "", ->(c, v) { c.orders.fetch_product_orders(id: v) }],
+    ["orders.validate", :get, "/order/", "/validate", ->(c, v) { c.orders.validate(code: v) }]
   ].freeze
 
   it "covers every method that puts a caller's value in a path" do
-    expect(calls.size).to eq(51)
+    expect(calls.size).to eq(54)
   end
 
   calls.each do |description, verb, before, after, call|

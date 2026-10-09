@@ -111,3 +111,6 @@
 "PUT /page/{id}":
   keywords:
     id: id_or_slug
+
+# Orders: Paystack names the operation "Fetch Product Orders"; the scaffold would drop the last word.
+"GET /order/product/{id}": fetch_product_orders
