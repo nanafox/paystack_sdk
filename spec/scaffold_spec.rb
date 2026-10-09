@@ -10,7 +10,30 @@ require "tmpdir"
 # handling must say what it did, Rails style.
 RSpec.describe "bin/paystack-scaffold", contract: false do
   let(:script) { File.expand_path("../bin/paystack-scaffold", __dir__) }
-  let(:client_source) { File.read(File.expand_path("../lib/paystack_sdk/client.rb", __dir__)) }
+
+  # The accessor the scaffold writes for a resource, as it appears in client.rb.
+  let(:generated_accessor) do
+    /
+    \n\x20{4}\#\x20Provides\x20access\x20to\x20the\x20`(?<klass>\w+)`\x20resource\.\n
+    \x20{4}\#\n
+    \x20{4}\#\x20@return\x20\[PaystackSdk::Resources::\k<klass>\]\x20An\x20instance\x20of\x20the\n
+    \x20{4}\#\x20\x20`\k<klass>`\x20resource\.\n
+    \x20{4}def\x20(?<file>\w+)\n
+    \x20{6}@\k<file>\x20\|\|=\x20Resources::\k<klass>\.new\(@connection\)\n
+    \x20{4}end\n
+    /x
+  end
+
+  # The real Client, less every resource the scaffold wired in (its accessor and its require), so the
+  # examples see the sample tags as not built whatever the repo has built. Hand-written accessors
+  # (Transfers, Transactions...) stay, with their requires: some examples rely on them.
+  let(:client_source) do
+    source = File.read(File.expand_path("../lib/paystack_sdk/client.rb", __dir__))
+    files = source.to_enum(:scan, generated_accessor).map { Regexp.last_match[:file] }
+    files.reduce(source.gsub(generated_accessor, "")) do |stripped, file|
+      stripped.sub(%(require_relative "resources/#{file}"\n), "")
+    end
+  end
   let(:root) { Dir.mktmpdir("scaffold") }
 
   before do
@@ -194,6 +217,16 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
   describe "creating files" do
     let(:class_file) { "lib/paystack_sdk/resources/terminals.rb" }
     let(:spec_file) { "spec/resources/terminals_spec.rb" }
+
+    it "starts from a Client with no generated resources, but with its own code and hand-written ones" do
+      client = File.read(path("lib/paystack_sdk/client.rb"))
+
+      expect(client).not_to match(generated_accessor)
+      expect(client).not_to include('require_relative "resources/terminals"')
+      expect(client).to include("def transfers", 'require_relative "resources/transfers"')
+      expect(client).to include("\n    private\n", "def key_from", "def live?")
+      expect(valid_ruby?(client)).to be(true)
+    end
 
     it "creates the class, the specs and the Client wiring, and says so" do
       stdout, _, status = in_root("Terminal")

@@ -164,3 +164,16 @@
 # ones under /customer/{id}/directdebit-*.
 "PUT /directdebit/activation-charge":
   note: "Charges the bank accounts behind the given customers' pending mandates to activate them; in live mode this moves real money. It was not called against the test API while this method was built, so its behaviour is documented, not verified. For one customer's inactive mandate, `customers.direct_debit_activation_charge` takes an `authorization_id` instead."
+
+# Terminals. The docs name Send Event's path variable terminal_id, as the other operations do; the
+# spec calls it id. Send Event and Commission/Decommission act on a physical device, so they were not
+# called while building this (the test account returns 403 "not yet available in your country" for
+# every Terminal endpoint, 2026-10-09).
+"POST /terminal/{id}/event":
+  keywords:
+    id: terminal_id
+  note: "This pushes the event to a physical Paystack Terminal. Not verified against the Paystack API: the test account used to build this SDK has no Terminal access."
+"POST /terminal/commission_device":
+  note: "This links a physical device to your integration. Not verified against the Paystack API: the test account used to build this SDK has no Terminal access."
+"POST /terminal/decommission_device":
+  note: "This unlinks a physical device from your integration. Not verified against the Paystack API: the test account used to build this SDK has no Terminal access."
