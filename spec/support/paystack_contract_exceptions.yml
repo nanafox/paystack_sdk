@@ -281,3 +281,50 @@
   description: A timestamp at which to stop listing settlements, for example 2016-09-24T00:00:05.000Z or 2016-09-21.
   reason: Listed on the Settlements List section of the docs (via the docs mirror) but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, which answers an invalid value with 400 "Invalid 'to' date passed". The test account has no settlements, so the filtering itself could not be observed.
   docs: https://paystack.com/docs/api/settlement/#list
+
+- operation: "GET /split"
+  in: query
+  wire: perPage
+  spec: per_page
+  reason: Canonical docs list perPage on List Splits; the spec says per_page. Confirmed against the Paystack test API on 2026-10-09 with two splits, where perPage=1 returns one split and meta.perPage 1, while per_page=1 is ignored (both splits, meta.perPage 50).
+  docs: https://paystack.com/docs/api/split/#list
+
+- operation: "GET /split/{id}"
+  in: path
+  wire: id
+  spec: id
+  type: string
+  reason: The docs say id is a string; the spec says an integer. Confirmed against the Paystack test API on 2026-10-09, where /split/<numeric id> and /split/<split code> (SPL_...) both return the split. Only Fetch takes a split code; Update returns 500 and Add/Remove Subaccount return 400 "Split ID should be an integer" for one.
+  docs: https://paystack.com/docs/api/split/#fetch
+
+- operation: "POST /split/{id}/subaccount/add"
+  in: body
+  wire: subaccount
+  spec: subaccount
+  required: true
+  reason: The docs list subaccount without "optional"; the spec marks it optional. Confirmed against the Paystack test API on 2026-10-09, where omitting it returns 400 "Please specify subaccount to be added".
+  docs: https://paystack.com/docs/api/split/#add-subaccount
+
+- operation: "POST /split/{id}/subaccount/add"
+  in: body
+  wire: share
+  spec: share
+  required: true
+  reason: The docs list share without "optional"; the spec marks it optional. Confirmed against the Paystack test API on 2026-10-09, where omitting it returns 400 "You have invalid or missing subaccount(s) key".
+  docs: https://paystack.com/docs/api/split/#add-subaccount
+
+- operation: "POST /split/{id}/subaccount/remove"
+  in: body
+  wire: subaccount
+  spec: subaccount
+  required: true
+  reason: The docs list subaccount without "optional"; the spec marks it optional. Confirmed against the Paystack test API on 2026-10-09, where omitting it returns 400 "Please specify subaccount to be removed".
+  docs: https://paystack.com/docs/api/split/#remove-subaccount
+
+- operation: "POST /split/{id}/subaccount/remove"
+  in: body
+  wire: share
+  spec: share
+  description: Not used when removing a subaccount; the docs do not list it, and Paystack removes the subaccount whatever share is sent.
+  reason: Description only. The spec copies share from Add Subaccount; the docs list only subaccount. Confirmed against the Paystack test API on 2026-10-09, where removing a subaccount whose share was 30 with share 999 still returns "Subaccount removed".
+  docs: https://paystack.com/docs/api/split/#remove-subaccount
