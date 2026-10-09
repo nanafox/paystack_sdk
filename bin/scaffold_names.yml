@@ -38,3 +38,6 @@
 # The docs call these "Disable OTP", "Finalize Disable OTP" and "Enable OTP"; the paths agree.
 "POST /transfer/disable_otp_finalize": finalize_disable_otp
 "POST /transfer/enable_otp": enable_otp
+
+# "Retry Refund": `retry` is a Ruby keyword. The path names what it does: retry with customer details.
+"POST /refund/retry_with_customer_details/{id}": retry_with_customer_details
