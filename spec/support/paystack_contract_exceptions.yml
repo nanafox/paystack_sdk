@@ -635,3 +635,13 @@
   description: A set of key/value pairs that you can attach to the product.
   reason: The spec says stringified JSON. Confirmed against the Paystack test API on 2026-10-09, where a JSON string is accepted but stored as an object of its characters ({"0":"{","1":"\"",...}), and a JSON object is stored as given ({"k":"v"}). The update operation's spec already types it as an object.
   docs: https://paystack.com/docs/api/product/#create
+
+- operation: "GET /virtual_terminal"
+  in: query
+  wire: status
+  spec: null
+  type: string
+  enum: [active, inactive]
+  description: Filter virtual terminals by status, active or inactive.
+  reason: Listed on the docs' List Virtual Terminals section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where status=bogus returned 400 "\"status\" must be one of [active, inactive]" while status=active and status=inactive returned 200. The account has no virtual terminals, so the filtering itself was not observed.
+  docs: https://paystack.com/docs/api/virtual-terminal/#list
