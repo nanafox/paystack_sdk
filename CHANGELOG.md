@@ -5,6 +5,7 @@
 ### Added
 
 - `Pages` (`client.pages`), generated from Paystack's OpenAPI spec: `create`, `list`, `fetch(id_or_slug:)`, `update(id_or_slug:)`, `check_slug_availability(slug:)` and `add_products(id:, products:)`. Checked against the Paystack test API, `fetch` and `update` take the numeric ID or the slug, `update` needs no `name` or `description` (the docs mark them required), and `add_products` reads `products` (the docs say `product`) and takes the numeric ID only.
+- `Products` (`client.products`), generated from Paystack's OpenAPI spec: `create`, `list`, `fetch(id:)`, `update(id:, ...)` and `delete(id:)`. `delete` (`DELETE /product/{id}`) is in the spec but on no docs page; the test API deletes the product. Checked against the test API, `create` does not require `description` (the spec and docs say it does; `name`, `price` and `currency` are required) and takes `metadata` as a Hash (the spec says a JSON string, which Paystack stores as an object of its characters). Products are addressed by numeric ID.
 
 ## [0.3.0] - 2026-10-09
 

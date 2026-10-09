@@ -18,6 +18,7 @@ require_relative "resources/subscriptions"
 require_relative "resources/dedicated_virtual_accounts"
 require_relative "resources/payment_requests"
 require_relative "resources/pages"
+require_relative "resources/products"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -261,6 +262,14 @@ module PaystackSdk
     #  `Pages` resource.
     def pages
       @pages ||= Resources::Pages.new(@connection)
+    end
+
+    # Provides access to the `Products` resource.
+    #
+    # @return [PaystackSdk::Resources::Products] An instance of the
+    #  `Products` resource.
+    def products
+      @products ||= Resources::Products.new(@connection)
     end
 
     private
