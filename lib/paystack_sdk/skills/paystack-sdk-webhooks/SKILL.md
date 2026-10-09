@@ -157,7 +157,7 @@ if response.paid?(amount: expected_amount_in_pesewas, currency: "GHS")
 end
 ```
 
-`expected_amount_in_pesewas` comes from your own record of the order, not from the event. See `paystack-sdk-payments` (accepting a payment and verifying it), [[paystack-sdk-overview]] and `paystack-sdk-charge-statuses`. Unknown reference, `paid?` false, or a mismatched amount: log it and do not grant.
+`expected_amount_in_pesewas` comes from your own record of the order, not from the event. See [[paystack-sdk-payments]] (accepting a payment and verifying it), [[paystack-sdk-overview]] and [[paystack-sdk-charge-statuses]]. Unknown reference, `paid?` false, or a mismatched amount: log it and do not grant.
 
 ## Which events (documented list = `Webhook::EVENTS`)
 
