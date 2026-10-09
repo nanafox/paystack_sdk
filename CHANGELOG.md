@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `Pages` (`client.pages`), generated from Paystack's OpenAPI spec: `create`, `list`, `fetch(id_or_slug:)`, `update(id_or_slug:)`, `check_slug_availability(slug:)` and `add_products(id:, products:)`. Checked against the Paystack test API, `fetch` and `update` take the numeric ID or the slug, `update` needs no `name` or `description` (the docs mark them required), and `add_products` reads `products` (the docs say `product`) and takes the numeric ID only.
+
 ## [0.3.0] - 2026-10-09
 
 ### Added

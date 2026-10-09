@@ -593,3 +593,27 @@
   type: string
   reason: The docs' parameter table says code and their cURL sample says id_or_code; the spec says an integer ID. Confirmed against the Paystack test API on 2026-10-09, where archiving by PRQ_ code and by numeric ID both return "Payment request has been archived" and an unknown code returns 400 "Payment request code is invalid".
   docs: https://paystack.com/docs/api/payment-request/#archive
+
+- operation: "GET /page/{id}"
+  in: path
+  wire: id
+  spec: id
+  type: string
+  reason: The docs name the path variable id_or_slug, a string. Confirmed against the Paystack test API on 2026-10-09, where /page/<numeric id> and /page/<slug> both return the page.
+  docs: https://paystack.com/docs/api/page/#fetch
+
+- operation: "PUT /page/{id}"
+  in: path
+  wire: id
+  spec: id
+  type: string
+  reason: The docs name the path variable id_or_slug, a string. Confirmed against the Paystack test API on 2026-10-09, where PUT /page/<numeric id> and PUT /page/<slug> both update the page.
+  docs: https://paystack.com/docs/api/page/#update
+
+- operation: "POST /page/{id}/product"
+  in: path
+  wire: id
+  spec: id
+  type: integer
+  reason: The docs say id is an integer; the spec says a string. On 2026-10-09 the Paystack test API answered a numeric id with its normal validation and "Page not found" responses, and a slug in the same position with HTTP 500 "An error occurred" (code unknown). Only the numeric ID is accepted.
+  docs: https://paystack.com/docs/api/page/#add-products
