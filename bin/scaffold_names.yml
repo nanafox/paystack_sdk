@@ -44,3 +44,11 @@
 
 # "Fetch Settlement Transactions": the docs call it "List Settlement Transactions"; the SDK method is `transactions`.
 "GET /settlement/{id}/transactions": transactions
+
+# "Fetch Subaccount" and "Update Subaccount": the docs name the path variable id_or_code (subaccount ID or code).
+"GET /subaccount/{code}":
+  keywords:
+    code: id_or_code
+"PUT /subaccount/{code}":
+  keywords:
+    code: id_or_code

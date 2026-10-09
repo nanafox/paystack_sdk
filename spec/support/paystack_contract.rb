@@ -191,13 +191,25 @@ module PaystackContract
         return ["the request body is not valid JSON"]
       end
 
-      errors = openapi.ref(schema_pointer(path, verb)).validate(parsed).map { |e| e["error"] }
+      errors = openapi.ref(schema_pointer(path, verb)).validate(with_spec_names(parsed, key)).map { |e| e["error"] }
       errors = errors.reject { |e| exception_error?(e, key) }
       errors + unknown_fields(schema, parsed, key)
     end
 
     def exception_error?(error, key)
-      exceptions_for(key, "body").any? { |e| error.include?("`/#{e["wire"]}`") }
+      exceptions_for(key, "body").any? { |e| error.include?("`/#{e["wire"]}`") || (e["spec"] && error.include?("`/#{e["spec"]}`")) }
+    end
+
+    # A body field the docs name differently (bank_code for the spec's settlement_bank) also fills the
+    # spec's name, so the spec's required check sees it. Its value is checked by the exception, not the spec.
+    def with_spec_names(parsed, key)
+      return parsed unless parsed.is_a?(Hash)
+
+      exceptions_for(key, "body").each_with_object(parsed.dup) do |e, body|
+        next if e["spec"].nil? || e["spec"] == e["wire"] || !body.key?(e["wire"]) || body.key?(e["spec"])
+
+        body[e["spec"]] = body[e["wire"]]
+      end
     end
 
     def unknown_fields(schema, value, key, prefix = nil)

@@ -107,6 +107,14 @@ RSpec.describe PaystackContract, contract: false do
       expect(check(:put, "/customer/CUS_1", body: {metadata: {a: 1}})).to eq([])
     end
 
+    it "lets a renamed body field satisfy the spec's required field" do
+      # subaccount bank_code: the docs' name for the spec's required settlement_bank
+      body = {business_name: "Ama's Shop", bank_code: "MTN", account_number: "0551234987", percentage_charge: 10}
+      expect(check(:post, "/subaccount", body: body)).to eq([])
+      expect(check(:post, "/subaccount", body: body.except(:bank_code)))
+        .to contain_exactly(match(/missing required properties: settlement_bank/))
+    end
+
     it "checks nested objects the spec describes" do
       body = {email: "a@b.co", amount: 1, mobile_money: {phone: "0551234987", provider: "mtn", bogus: 1}}
       expect(check(:post, "/charge", body: body)).to contain_exactly(match(/unknown body field `mobile_money.bogus`/))
