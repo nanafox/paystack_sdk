@@ -16,6 +16,10 @@ module PaystackSdk
     # Include connection utilities
     include Utils::ConnectionUtils
 
+    # Prefix of Paystack's test and live secret keys.
+    TEST_KEY_PREFIX = "sk_test_"
+    LIVE_KEY_PREFIX = "sk_live_"
+
     # @return [Faraday::Connection] The Faraday connection object used for API requests
     attr_reader :connection
 
@@ -25,6 +29,9 @@ module PaystackSdk
     #   If nil, a new connection will be created using the default API key.
     # @param secret_key [String, nil] Optional API key to use for creating a new connection.
     #   Only used if connection is nil.
+    # @param sandbox_only [Boolean] Refuse to build a client unless the key is a test key
+    #   (`sk_test_...`). Set this in staging and CI so they can never charge real money.
+    # @raise [ArgumentError] If `sandbox_only` is true and the key is not a test key.
     #
     # @example With an existing connection
     #   connection = Faraday.new(...)
@@ -35,8 +42,25 @@ module PaystackSdk
     #
     # @example With default connection (requires PAYSTACK_SECRET_KEY environment variable)
     #   client = PaystackSdk::Client.new
-    def initialize(connection = nil, secret_key: nil, **options)
+    # @example Refuse live keys (staging, CI)
+    #   client = PaystackSdk::Client.new(secret_key: ENV["PAYSTACK_SECRET_KEY"], sandbox_only: true)
+    def initialize(connection = nil, secret_key: nil, sandbox_only: false, **options)
+      if sandbox_only
+        key = connection ? key_from(connection) : (secret_key || ENV["PAYSTACK_SECRET_KEY"])
+        unless key.to_s.start_with?(TEST_KEY_PREFIX)
+          raise ArgumentError, "sandbox_only is set, but the secret key is not a test key (#{TEST_KEY_PREFIX}...)"
+        end
+      end
+
       @connection = initialize_connection(connection, secret_key: secret_key, **options)
+    end
+
+    # Whether this client is using a live key (`sk_live_...`), so requests move real money.
+    # A test key, or a key in any other form, is not live.
+    #
+    # @return [Boolean]
+    def live?
+      key_from(@connection).to_s.start_with?(LIVE_KEY_PREFIX)
     end
 
     # Provides access to the `Transactions` resource.
@@ -138,6 +162,13 @@ module PaystackSdk
     # ```
     def miscellaneous
       @miscellaneous ||= Resources::Miscellaneous.new(@connection)
+    end
+
+    private
+
+    # The secret key a connection sends, read from its Authorization header.
+    def key_from(connection)
+      connection.headers["Authorization"].to_s.delete_prefix("Bearer ")
     end
   end
 end

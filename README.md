@@ -8,12 +8,15 @@ The `paystack_sdk` gem provides a simple and intuitive interface for interacting
 - [Quick Start](#quick-start)
 - [Usage](#usage)
   - [Client Initialization](#client-initialization)
+  - [Test and Live Keys](#test-and-live-keys)
   - [Transactions](#transactions)
     - [Initialize a Transaction](#initialize-a-transaction)
     - [Verify a Transaction](#verify-a-transaction)
     - [List Transactions](#list-transactions)
     - [Fetch a Transaction](#fetch-a-transaction)
     - [Get Transaction Totals](#get-transaction-totals)
+    - [Checking a Payment](#checking-a-payment)
+    - [Charging a Saved Card](#charging-a-saved-card)
   - [Charges](#charges)
     - [Create a Mobile Money Charge](#create-a-mobile-money-charge)
     - [Create a Charge on Another Channel](#create-a-charge-on-another-channel)
@@ -182,6 +185,19 @@ paystack = PaystackSdk::Client.new # => This will dynamically fetch the secret k
 # You can access the connection directly if needed
 connection = paystack.connection
 ```
+
+### Test and Live Keys
+
+A live key (`sk_live_...`) moves real money. `client.live?` tells you which kind a client holds, and `sandbox_only: true` makes the client refuse anything but a test key (`sk_test_...`) at construction, before any request is sent. Set it in staging and CI:
+
+```ruby
+client = PaystackSdk::Client.new(secret_key: ENV["PAYSTACK_SECRET_KEY"], sandbox_only: true)
+# => ArgumentError if the key is a live key, or anything not recognisable as a test key
+
+client.live? # => false
+```
+
+The error never includes the key. A pre-built Faraday connection is checked too (the key is read from its `Authorization` header).
 
 ### Transactions
 
@@ -444,6 +460,40 @@ paystack.transactions.partial_debit(
   currency: "GHS"
 )
 ```
+
+#### Checking a Payment
+
+Confirm a payment by verifying it, then check the status, amount and currency. `paid?` does all three: it is true only when the call succeeded and the transaction's `status` is `"success"`, and, for the `amount` and `currency` you pass, they match what Paystack reports.
+
+```ruby
+response = paystack.transactions.verify(reference: reference)
+
+if response.paid?(amount: 5000, currency: "GHS") # amount in the smallest unit, e.g. pesewas
+  authorization = response.authorization
+  authorization.authorization_code # keep this to charge the card again
+  authorization.reusable           # true if it can be charged again
+end
+```
+
+Fields keep Paystack's own names: `response.reference`, `amount`, `currency`, `status`, `paid_at`, `gateway_response`, `fees`, `customer.email`, `customer.customer_code`, and on `authorization`: `authorization_code`, `reusable`, `channel`, `last4`, `card_type`, `signature`, `exp_month`, `exp_year`, `bin`, `bank`, `account_name`, `country_code` and `brand`. `response.status?(:pending)` compares the `status` field with any value, which is how you read a charge that is waiting on the payer (`status?(:send_pin)`, `status?(:pay_offline)`); `response.display_text` is the prompt Paystack wants shown to them.
+
+#### Charging a Saved Card
+
+After a successful card payment, the `authorization_code` can be charged again with no checkout, for example for a renewal. Only an authorization with `reusable: true` can be charged again.
+
+```ruby
+charge = paystack.transactions.charge_authorization(
+  email: "customer@example.com",   # the customer the authorization belongs to
+  amount: 5000,
+  currency: "GHS",
+  authorization_code: "AUTH_xxxx",
+  reference: "renewal-2025-06-ama"  # unique per attempt; reuse it if you retry so you cannot charge twice
+)
+
+paystack.transactions.verify(reference: "renewal-2025-06-ama").paid?(amount: 5000, currency: "GHS")
+```
+
+This was checked against Paystack's test API: a reusable card authorization charged successfully (`status: "success"`, `gateway_response: "Approved"`), and an unknown `authorization_code` came back as an unsuccessful response with `"Authorization code is invalid"`. Writes are never retried after a timeout, so if a `charge_authorization` call times out, verify the `reference` before charging again. Test mode does not prove live behaviour.
 
 ### Customers
 

@@ -42,6 +42,9 @@
 
 ### Added
 
+- `Client#live?` and `Client.new(..., sandbox_only: true)`: the client refuses to be built with anything but an `sk_test_` key (or a pre-built connection that sends one), raising `ArgumentError` before any request.
+- `Response#paid?(amount: nil, currency: nil)` (call succeeded, `status` is `"success"`, and the amount and currency match if given) and `Response#status?(value)`.
+- `spec/sandbox/`: specs against Paystack's real test API, skipped unless `PAYSTACK_TEST_SECRET_KEY` is set to an `sk_test_` key. They confirm that `charge_authorization` charges a saved reusable card.
 - `transfer_recipients.bulk_create(batch:)` for `POST /transferrecipient/bulk`.
 - The rest of the Charge API: `charges.create`, `submit_pin`, `submit_phone`, `submit_birthday`, `submit_address` and `check_pending`. `create` takes the channel objects (`bank`, `mobile_money`, `ussd`, `eft`, `qr`, `bank_transfer`, `capitec_pay`) as keyword hashes, plus `currency`, `split_code` and `subaccount`, which Paystack documents and the test API honours although the OpenAPI spec omits them.
 - `charges.mobile_money` accepts the `mpesa_offline` and `mptill` providers Paystack documents, and an M-PESA Till `account` in place of `phone`.
