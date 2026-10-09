@@ -41,11 +41,12 @@ RSpec.describe "escaping of path segments", contract: false do
     ["refunds.fetch", :get, "/refund/", "", ->(c, v) { c.refunds.fetch(id: v) }],
     ["refunds.retry_with_customer_details", :post, "/refund/retry_with_customer_details/", "", lambda { |c, v|
       c.refunds.retry_with_customer_details(id: v, refund_account_details: {currency: "GHS", account_number: "0123456789", bank_id: "1"})
-    }]
+    }],
+    ["settlements.transactions", :get, "/settlement/", "/transactions", ->(c, v) { c.settlements.transactions(id: v) }]
   ].freeze
 
   it "covers every method that puts a caller's value in a path" do
-    expect(calls.size).to eq(18)
+    expect(calls.size).to eq(19)
   end
 
   calls.each do |description, verb, before, after, call|

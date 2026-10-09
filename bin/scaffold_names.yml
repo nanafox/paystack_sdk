@@ -41,3 +41,6 @@
 
 # "Retry Refund": `retry` is a Ruby keyword. The path names what it does: retry with customer details.
 "POST /refund/retry_with_customer_details/{id}": retry_with_customer_details
+
+# "Fetch Settlement Transactions": the docs call it "List Settlement Transactions"; the SDK method is `transactions`.
+"GET /settlement/{id}/transactions": transactions
