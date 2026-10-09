@@ -507,10 +507,10 @@ end
 
 ```ruby
 # Fetch by customer code
-response = paystack.customers.fetch(code: "CUS_xr58yrr2ujlft9k")
+response = paystack.customers.fetch(email_or_code: "CUS_xr58yrr2ujlft9k")
 
 # Or fetch by email (Paystack accepts either in the same place)
-response = paystack.customers.fetch(code: "customer@example.com")
+response = paystack.customers.fetch(email_or_code: "customer@example.com")
 
 if response.success?
   customer = response.data

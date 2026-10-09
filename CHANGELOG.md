@@ -24,7 +24,7 @@
   - `list` takes `per_page:`, `page:`, `use_cursor:`, `next_cursor:` and `previous:` instead of a query hash. `perPage` is what Paystack's docs name the page size; the API honours it. `from` and `to` are in the docs but the API ignores them, so they are not offered.
 - `Customers` is now generated from Paystack's OpenAPI spec and takes keyword arguments instead of payload hashes. Method names are unchanged.
   - `create(email:, ...)`, `set_risk_action(customer:, risk_action: nil)` and `deactivate_authorization(authorization_code:)` no longer accept a hash; use `create(**params)` to migrate.
-  - `fetch(code:)` replaces `fetch(email_or_code)` (it still takes an email or a customer code); `update(code:, first_name: nil, ...)` replaces `update(code, payload)`; `validate(code:, ...)` replaces `validate(code, payload)`.
+  - `fetch(email_or_code:)` replaces `fetch(email_or_code)` (the keyword is the path variable's name in Paystack's docs; it takes an email or a customer code); `update(code:, first_name: nil, ...)` replaces `update(code, payload)`; `validate(code:, ...)` replaces `validate(code, payload)`.
   - `validate` now requires `first_name`, `last_name`, `type`, `country`, `bvn`, `bank_code` and `account_number`, as Paystack does (the test API answers 400 without each). It previously did not require `bvn` or the names.
   - `list` takes named filters (`per_page`, `page`, `from`, `to`, `use_cursor`, `next_cursor`, `previous`) instead of `**params`, and no longer defaults `per_page: 50, page: 1`; Paystack's own defaults apply.
   - `metadata` on `create` and `update` must be a Hash; it is sent as a JSON object (Paystack rejects a JSON string).
@@ -43,6 +43,7 @@
 - `charges.mobile_money` accepts the `mpesa_offline` and `mptill` providers Paystack documents, and an M-PESA Till `account` in place of `phone`.
 - `bin/paystack-scaffold` generates body parameters recorded as docs-only (`spec: null`) in `spec/support/paystack_contract_exceptions.yml`, as it already did for query parameters.
 - `customers` covers the rest of Paystack's Customer API: `initialize_authorization`, `verify_authorization`, `initialize_direct_debit`, `direct_debit_activation_charge` and `fetch_mandate_authorizations`, plus cursor pagination on `list` (`use_cursor`, `next_cursor`, `previous`).
+- `bin/scaffold_names.yml` entries can be a hash, `{name: ..., keywords: {path_variable: ruby_keyword}}`, so a path variable takes the Ruby keyword Paystack's docs use where the spec names it differently.
 - `bin/paystack-scaffold` applies body-field entries from `spec/support/paystack_contract_exceptions.yml` (wire name, type and description), as it already did for query parameters.
 - `transactions.export` accepts `currency`, `amount`, `settled` and `payment_page` (documented by Paystack, absent from the OpenAPI spec; confirmed to filter results against the test API) and `subaccount_code`. Paystack's docs also list `perPage` and `page` on Export, but the API ignores them, so the SDK does not offer them.
 - `PaystackSdk::Webhook` verifies Paystack webhook signatures (HMAC SHA512, constant-time) and parses events: `valid_signature?`, `verify!`, `construct_event`, `sign`, `trusted_ip?`, plus the documented `EVENTS` and `IP_ADDRESSES`. New errors: `WebhookError`, `InvalidSignatureError`, `InvalidPayloadError`.

@@ -21,7 +21,7 @@ RSpec.describe "escaping of path segments", contract: false do
     ["transfer_recipients.fetch", :get, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.fetch(id_or_code: v) }],
     ["transfer_recipients.update", :put, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.update(id_or_code: v, name: "Ama") }],
     ["transfer_recipients.delete", :delete, "/transferrecipient/", "", ->(c, v) { c.transfer_recipients.delete(id_or_code: v) }],
-    ["customers.fetch", :get, "/customer/", "", ->(c, v) { c.customers.fetch(code: v) }],
+    ["customers.fetch", :get, "/customer/", "", ->(c, v) { c.customers.fetch(email_or_code: v) }],
     ["customers.update", :put, "/customer/", "", ->(c, v) { c.customers.update(code: v, first_name: "Ama") }],
     ["customers.validate", :post, "/customer/", "/identification", lambda { |c, v|
       c.customers.validate(code: v, first_name: "Ama", last_name: "Mensah", type: "bank_account", country: "NG",
@@ -77,7 +77,7 @@ RSpec.describe "escaping of path segments", contract: false do
   it "encodes the @ in an email used to fetch a customer" do
     stub = stub_request(:get, "https://api.paystack.co/customer/ama%40example.com").to_return(ok)
 
-    client.customers.fetch(code: "ama@example.com")
+    client.customers.fetch(email_or_code: "ama@example.com")
 
     expect(stub).to have_been_requested
   end

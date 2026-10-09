@@ -81,6 +81,17 @@ It creates `lib/paystack_sdk/resources/<name>.rb` and `spec/resources/<name>_spe
 
 **Method names** come from the operation's summary unless `bin/scaffold_names.yml` names the operation (keyed `"METHOD /path"`). That file keeps the names the SDK has always used (`initiate`, `totals`, `timeline`, `create`). The scaffold refuses a name that would shadow Ruby's own methods or the base class's (`initialize`, `send`, `format`...) and says to add it there.
 
+**Path-variable keywords** follow the docs' name for the variable where it differs from the spec's (the wire is unchanged: path variables are not sent by name). Give the entry as a hash; `name` is optional:
+
+```yaml
+"GET /customer/{code}":
+  name: fetch
+  keywords:
+    code: email_or_code   # spec path variable => Ruby keyword
+```
+
+Check `bin/paystack-spec docs-diff <resource>` for `path` lines, but confirm the name in the docs page's *Path Parameters* table: the cURL samples sometimes use another placeholder.
+
 **Checks it adds on its own,** matching what the SDK has always done: `validate_email!` for `email`, `validate_positive_integer!` for `amount`, `page` and `per_page`, and `validate_reference_format!` for a `reference` you send (skipped when optional and nil; never applied to a reference in the path). Enums come from the spec.
 
 **It protects your work.** A file that git tracks and the scaffold did not write (or that someone edited) is **never** overwritten or removed, even with `--force` (`protected`): use `git rm` / `git mv` yourself if you mean to replace it. An *untracked* file you edited needs `--force`, is copied to `tmp/scaffold-backups/<timestamp>/` first (gitignored), and the report says how many lines it replaced or removed. Any conflict leaves `Client` untouched, and a hand-written `client.<name>` accessor (and its `require`) is never removed. Use `--dry-run` first. `--skip-spec` leaves the specs out.

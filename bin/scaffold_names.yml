@@ -4,6 +4,14 @@
 # Names not listed here come from the operation's summary ("Create Subaccount" becomes `create`).
 # bin/paystack-scaffold refuses a name that would shadow one of Ruby's own methods (`initialize`,
 # `send`, `format`...) and tells you to add the operation here.
+#
+# An entry can also be a hash, to give a path variable the Ruby keyword Paystack's docs use where the
+# spec names it differently (the wire does not change: path variables are not sent by name):
+#
+#   "GET /customer/{code}":
+#     name: fetch                  # optional; the method name, as above
+#     keywords:
+#       code: email_or_code        # spec path variable => Ruby keyword
 
 # "Initialize Transaction": `initialize` would replace the constructor.
 "POST /transaction/initialize": initiate
@@ -18,3 +26,9 @@
 
 # "List States (AVS)"
 "GET /address_verification/states": list_states
+
+# "Fetch Customer": the docs name the path variable email_or_code; it takes an email or a customer code.
+"GET /customer/{code}":
+  name: fetch
+  keywords:
+    code: email_or_code

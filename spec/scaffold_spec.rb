@@ -432,6 +432,34 @@ RSpec.describe "bin/paystack-scaffold", contract: false do
 
       expect(scaffold("Refund", "--print", "--names", names).first).to include("def all_refunds(")
     end
+
+    it "gives a path variable the keyword a hash entry names, without changing the path" do
+      names = File.join(root, "names.yml")
+      File.write(names, %("GET /customer/{code}":\n  name: lookup\n  keywords:\n    code: email_or_code\n))
+
+      out = scaffold("Customer", "--print", "--names", names).first
+
+      expect(out).to include("def lookup(email_or_code:)")
+      expect(out).to include(%(validate_presence!(value: email_or_code, name: "email_or_code")))
+      expect(out).to include(%(@connection.get("/customer/\#{escape_path(email_or_code, name: "email_or_code")}")))
+    end
+
+    it "takes a hash entry without a name, keeping the operation's own" do
+      names = File.join(root, "names.yml")
+      File.write(names, %("GET /customer/{code}":\n  keywords:\n    code: email_or_code\n))
+
+      expect(scaffold("Customer", "--print", "--names", names).first).to include("def fetch(email_or_code:)")
+    end
+
+    it "refuses a keyword for a path variable the operation does not have" do
+      names = File.join(root, "names.yml")
+      File.write(names, %("GET /customer/{code}":\n  keywords:\n    id: customer_id\n))
+
+      _, stderr, status = scaffold("Customer", "--print", "--names", names)
+
+      expect(status).not_to be_success
+      expect(stderr).to include("not a path variable")
+    end
   end
 
   describe "checks the SDK has always made" do
