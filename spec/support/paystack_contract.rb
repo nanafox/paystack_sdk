@@ -131,6 +131,10 @@ module PaystackContract
       else
         declared.find { |p| p["name"] == (exception ? exception["spec"] : name) }
       end
+      # an exception may correct the spec's list of allowed values
+      if param && exception && exception["enum"]
+        param = param.merge("schema" => resolve(param["schema"] || {}).merge("enum" => exception["enum"]))
+      end
       [param, exception&.fetch("type", nil)]
     end
 

@@ -26,7 +26,7 @@ RSpec.describe "escaping of path segments", contract: false do
     ["customers.validate", :post, "/customer/", "/identification", lambda { |c, v|
       c.customers.validate(v, {country: "GH", type: "bank_account", account_number: "0123456789", bank_code: "044"})
     }],
-    ["verification.resolve_card_bin", :get, "/decision/bin/", "", ->(c, v) { c.verification.resolve_card_bin(v) }]
+    ["miscellaneous.resolve_card_bin", :get, "/decision/bin/", "", ->(c, v) { c.miscellaneous.resolve_card_bin(bin: v) }]
   ].freeze
 
   it "covers every method that puts a caller's value in a path" do
