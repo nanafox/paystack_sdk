@@ -154,3 +154,8 @@
   note: "Registers a domain for Apple Pay on the whole account. This changes Apple Pay configuration that may also affect live mode, even with a test key (sk_test_). Not verified against the live API by this SDK: do not call it to try the API out."
 "DELETE /apple-pay/domain":
   note: "Unregisters a domain from Apple Pay on the whole account. This changes Apple Pay configuration that may also affect live mode, even with a test key (sk_test_). Not verified against the live API by this SDK, including how Paystack reads the request body of a DELETE."
+
+# "Update Payment Session Timeout": an account-wide setting. Not called live while building this (it may be
+# shared with LIVE mode), so its behaviour is described from the spec and docs only.
+"PUT /integration/payment_session_timeout":
+  note: "Changes the payment session timeout of the whole integration (account-wide), and the setting may be shared with LIVE mode even when you call it with a test key (sk_test_). It has not been verified against the live API. Read the current value with `fetch_payment_session_timeout` first, and do not call this to try the API out."

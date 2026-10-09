@@ -23,6 +23,7 @@ require_relative "resources/orders"
 require_relative "resources/storefronts"
 require_relative "resources/bulk_charges"
 require_relative "resources/apple_pay"
+require_relative "resources/integrations"
 require_relative "utils/connection_utils"
 
 module PaystackSdk
@@ -306,6 +307,14 @@ module PaystackSdk
     #  `ApplePay` resource.
     def apple_pay
       @apple_pay ||= Resources::ApplePay.new(@connection)
+    end
+
+    # Provides access to the `Integrations` resource.
+    #
+    # @return [PaystackSdk::Resources::Integrations] An instance of the
+    #  `Integrations` resource.
+    def integrations
+      @integrations ||= Resources::Integrations.new(@connection)
     end
 
     private
