@@ -20,7 +20,6 @@ require_relative "lib/llms_builder"
 module PaystackDocs
   class ContentBuild
     SITE = "https://nanafox.github.io"
-    GROUP_ORDER = ["Getting started", "Guides", "Advanced", "AI skills", "Skills", "Core", "Resources", "Project", "Changelog"].freeze
 
     def initialize(src:, out:, version:, base:)
       @src = File.expand_path(src)
@@ -34,6 +33,7 @@ module PaystackDocs
       FileUtils.rm_rf([@out, @public])
       write_pages
       write_public
+      write_static
       write_site
       puts "#{pages.size} pages, #{llms.files.size} raw files -> #{@out}"
     end
@@ -43,7 +43,7 @@ module PaystackDocs
     def skills = @skills ||= SkillsBuilder.new(@src)
 
     def pages
-      @pages ||= readme.pages + ReferenceBuilder.new(@src).pages + skills.pages + [changelog_page].compact
+      @pages ||= readme.pages + concept_pages + ReferenceBuilder.new(@src).pages + skills.pages + [changelog_page].compact
     end
 
     def llms
@@ -51,6 +51,18 @@ module PaystackDocs
     end
 
     private
+
+    # Hand-written pages under docs/concepts/: the ideas the generated pages assume.
+    def concept_pages
+      Dir[File.join(__dir__, "..", "concepts", "*.md")].sort.map do |file|
+        text = File.read(file)
+        title = text[/^# (.+)$/, 1]
+        slug = File.basename(file, ".md").sub(/\A\d+-/, "")
+        # A line that is only a component (`<PaymentFlow />`) is meant for Vue: leave it alone.
+        body = Markdown.map_prose(text) { |line| line.match?(/\A<[A-Z]\w* \/>\s*\z/) ? line : Markdown.escape_for_vue(line) }
+        ReadmeSplitter::Page.new(path: "concepts/#{slug}", title: title, group: "Concepts", body: body)
+      end
+    end
 
     def changelog_page
       file = File.join(@src, "CHANGELOG.md")
@@ -84,12 +96,32 @@ module PaystackDocs
       end
     end
 
-    def write_site
-      sidebar = GROUP_ORDER.filter_map do |group|
-        items = pages.select { |p| p.group == group }
-        next if items.empty?
+    # One sidebar per section, so a reference page does not list forty guides.
+    SECTIONS = {
+      "/guide/" => ["Getting started", "Guides", "Advanced", "AI skills", "Project"],
+      "/concepts/" => %w[Concepts],
+      "/reference/" => %w[Core Resources],
+      "/skills/" => %w[Skills]
+    }.freeze
 
-        {text: group, collapsed: %w[Resources].include?(group), items: items.map { |p| {text: p.title, link: "/#{p.path}"} }}
+    # Static assets (the logo) go beside the pages for `vitepress dev`, and into the post-build copy.
+    def write_static
+      Dir[File.join(__dir__, "..", "static", "*")].each do |file|
+        [File.join(@out, "public"), @public].each do |dir|
+          FileUtils.mkdir_p(dir)
+          FileUtils.cp(file, dir)
+        end
+      end
+    end
+
+    def write_site
+      sidebar = SECTIONS.transform_values do |groups|
+        groups.filter_map do |group|
+          items = pages.select { |p| p.group == group }
+          next if items.empty?
+
+          {text: group, collapsed: false, items: items.map { |p| {text: p.title, link: "/#{p.path}"} }}
+        end
       end
       File.write(File.join(@out, "site.json"), JSON.pretty_generate(version: @version, base: @base, sidebar: sidebar))
     end

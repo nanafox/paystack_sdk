@@ -1,0 +1,191 @@
+/* The home page: a navy hero with a live-looking code panel, then feature cards and an agent band. */
+.VPHome .VPHero {
+  position: relative;
+  padding: calc(var(--vp-nav-height) + 48px) 24px 72px;
+  --vp-home-hero-name-color: var(--ps-green-400);
+  --vp-home-hero-name-background: none;
+  --vp-home-hero-image-background-image: none;
+  background: var(--ps-navy-900);
+  color: #fff;
+}
+.VPHome .VPHero .text {
+  color: #fff;
+  letter-spacing: -0.03em;
+}
+.VPHome .VPHero .tagline {
+  color: #b4c3d8;
+  max-width: 34em;
+}
+.VPHome .VPHero .VPButton.alt {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+.VPHome .VPHero .VPButton.alt:hover {
+  border-color: var(--ps-green-400);
+  color: var(--ps-green-300);
+}
+
+.ps-eyebrow {
+  display: inline-block;
+  margin-bottom: 14px;
+  font: 600 12px/1 var(--ps-font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ps-green-400);
+}
+
+.ps-panel {
+  width: 100%;
+  max-width: 520px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--ps-radius-sm);
+  background: var(--ps-navy-950);
+  overflow: hidden;
+  text-align: left;
+}
+.ps-panel-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font: 12px var(--ps-font-mono);
+  color: #7f93ad;
+}
+.ps-panel pre {
+  margin: 0;
+  padding: 16px 18px 18px;
+  overflow-x: auto;
+  font: 13px/1.7 var(--ps-font-mono);
+  color: #d6e2f2;
+}
+.ps-panel .c { color: #6b819e; }
+.ps-panel .k { color: #7ab8ff; }
+.ps-panel .s { color: var(--ps-green-300); }
+.ps-panel .n { color: #ffd38a; }
+.ps-panel .ok { color: var(--ps-green-400); }
+
+/* feature cards */
+.VPHome .VPFeatures {
+  padding-top: 48px;
+}
+.VPHome .VPFeature {
+  border-radius: var(--ps-radius-sm);
+  border: 1px solid var(--vp-c-divider);
+  background: transparent;
+}
+.VPHome .VPFeature .title {
+  letter-spacing: -0.01em;
+}
+
+/* the agent band under the cards */
+.ps-band {
+  max-width: 1152px;
+  margin: 24px auto 72px;
+  padding: 28px 32px;
+  border-radius: var(--ps-radius);
+  background: var(--ps-navy-900);
+  color: #e8eef7;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  align-items: center;
+}
+.ps-band h2 {
+  margin: 0 0 8px;
+  border: 0;
+  padding: 0;
+  font-size: 22px;
+  color: #fff;
+}
+.ps-band p {
+  margin: 0;
+  color: #b4c3d8;
+  line-height: 1.6;
+}
+.ps-band a {
+  color: var(--ps-green-300);
+}
+.ps-band pre {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--ps-radius-sm);
+  background: rgba(6, 17, 38, 0.8);
+  font: 13px/1.7 var(--ps-font-mono);
+  color: #d6e2f2;
+  overflow-x: auto;
+}
+.ps-band pre .p { color: var(--ps-green-400); }
+
+@media (max-width: 860px) {
+  .ps-band { grid-template-columns: 1fr; margin: 16px 16px 48px; padding: 22px; }
+  .VPHome .VPHero { padding: 40px 16px 48px; }
+}
+
+/* On the home page the nav floats over the navy hero until you scroll: keep it readable there. */
+.VPNavBar.home.top {
+  --vp-c-text-1: #fff;
+  --vp-c-text-2: #c4d1e3;
+  --vp-c-brand-1: var(--ps-green-300);
+}
+.VPNavBar.home.top .VPNavBarSearch .DocSearch-Button,
+.VPNavBar.home.top .VPNavBarSearch .VPNavBarSearchButton {
+  background: rgba(255, 255, 255, 0.1);
+}
+.VPNavBar.home.top .divider-line { background: transparent; }
+.VPNavBar.home.top .VPNavBarTitle .title { color: #fff; }
+
+/* Hero layout: a fixed-width text column and a panel that stays clear of it, at every width. */
+@media (min-width: 960px) {
+  .VPHome .VPHero.has-image .container {
+    max-width: 1152px;
+    gap: 56px;
+    align-items: center;
+  }
+  .VPHome .VPHero .main {
+    flex: 0 1 520px;
+    max-width: 520px;
+    width: auto;
+  }
+  .VPHome .VPHero .image {
+    flex: 1 1 0;
+    order: 2;
+    margin: 0;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+  .VPHome .VPHero .image-container {
+    width: 100%;
+    height: auto;
+    transform: none;
+  }
+  .VPHome .VPHero .text {
+    font-size: 46px;
+    line-height: 1.12;
+  }
+  .VPHome .VPHero .tagline {
+    font-size: 18px;
+    line-height: 1.6;
+    max-width: 30em;
+  }
+}
+@media (min-width: 1280px) {
+  .VPHome .VPHero .text { font-size: 52px; }
+}
+.ps-panel {
+  margin-left: auto;
+}
+
+/* The project name is a label; the sentence under it is the headline. */
+.VPHome .VPHero .heading {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.VPHome .VPHero .name.clip {
+  font: 600 13px/1 var(--ps-font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ps-green-400);
+}

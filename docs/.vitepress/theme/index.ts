@@ -1,13 +1,21 @@
 import DefaultTheme from "vitepress/theme"
 import { h } from "vue"
+import HeroPanel from "./HeroPanel.vue"
+import PaymentFlow from "./PaymentFlow.vue"
 import VersionSwitcher from "./VersionSwitcher.vue"
-import "./custom.css"
+import "./tokens.css"
+import "./brand.css"
+import "./home.css"
 
 export default {
   extends: DefaultTheme,
+  enhanceApp({ app }) {
+    app.component("PaymentFlow", PaymentFlow)
+  },
   Layout() {
     return h(DefaultTheme.Layout, null, {
       "nav-bar-content-after": () => h(VersionSwitcher),
+      "home-hero-image": () => h(HeroPanel),
     })
   },
 }

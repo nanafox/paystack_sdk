@@ -8,6 +8,7 @@ const { site } = useData()
 const route = useRoute()
 const versions = ref<string[]>([])
 const current = ref("")
+const latestVersion = ref("")
 const root = site.value.base.replace(/[^/]+\/$/, "")
 
 onMounted(async () => {
@@ -15,12 +16,15 @@ onMounted(async () => {
   try {
     const res = await fetch(`${root}versions.json`)
     const data = await res.json()
+    latestVersion.value = data.latest
     versions.value = ["latest", ...(data.next ? ["next"] : []), ...data.versions]
     if (!versions.value.includes(current.value)) versions.value.push(current.value)
   } catch {
     versions.value = [current.value]
   }
 })
+
+const label = (v: string) => (v === "latest" && latestVersion.value ? `latest (${latestVersion.value})` : v)
 
 function go(event: Event) {
   const target = (event.target as HTMLSelectElement).value
@@ -36,7 +40,7 @@ function go(event: Event) {
 <template>
   <div v-if="versions.length > 1" class="version-switcher">
     <select :value="current" aria-label="Documentation version" @change="go">
-      <option v-for="v in versions" :key="v" :value="v">{{ v }}</option>
+      <option v-for="v in versions" :key="v" :value="v">{{ label(v) }}</option>
     </select>
   </div>
 </template>
