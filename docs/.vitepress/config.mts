@@ -40,7 +40,7 @@ export default defineConfig({
     editLink: { pattern: `${repo}/edit/main/README.md`, text: "Edit the README on GitHub" },
     footer: {
       message: `paystack_sdk ${site.version} · MIT License · <a href="https://rubygems.org/gems/paystack_sdk" target="_blank" rel="noreferrer">rubygems.org/gems/paystack_sdk</a>`,
-      copyright: "Every page is also available as raw markdown: see llms.txt.",
+      copyright: `© 2026–present Maxwell Nana Forson · every page is also available as raw markdown: see <a href="${site.base}llms.txt">llms.txt</a>`,
     },
   },
 })
