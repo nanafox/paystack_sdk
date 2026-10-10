@@ -25,7 +25,7 @@ export default defineConfig({
   ],
   themeConfig: {
     logo: "/logo.svg",
-    siteTitle: `paystack_sdk ${site.version}`,
+    siteTitle: "paystack_sdk",
     nav: [
       { text: "Guides", link: "/guide/introduction", activeMatch: "/guide/" },
       { text: "Concepts", link: "/concepts/payment-lifecycle", activeMatch: "/concepts/" },
