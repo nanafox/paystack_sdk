@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync, statSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { defineConfig } from "vitepress"
@@ -6,6 +6,22 @@ import { defineConfig } from "vitepress"
 const here = dirname(fileURLToPath(import.meta.url))
 // Written by scripts/build-content.rb: the version, the base path and the sidebar.
 const site = JSON.parse(readFileSync(resolve(here, "../content/site.json"), "utf8"))
+// `npm run build` copies content-public/ (llms.txt, the raw markdown, the skills) into the site. The dev server
+// does not, so serve those files from there too: the same URLs work in `npm run dev`.
+const rawFiles = {
+  name: "serve-raw-files",
+  configureServer(server: any) {
+    server.middlewares.use((req: any, res: any, next: () => void) => {
+      const path = decodeURIComponent((req.url ?? "").split("?")[0])
+      if (!path.startsWith(site.base)) return next()
+      const file = resolve(here, "../content-public", path.slice(site.base.length))
+      if (!file.startsWith(resolve(here, "../content-public")) || !existsSync(file) || !statSync(file).isFile()) return next()
+      res.setHeader("Content-Type", file.endsWith(".md") || file.endsWith(".txt") ? "text/plain; charset=utf-8" : "application/octet-stream")
+      res.end(readFileSync(file))
+    })
+  },
+}
+
 const repo = "https://github.com/nanafox/paystack_sdk"
 
 export default defineConfig({
@@ -17,6 +33,7 @@ export default defineConfig({
   lastUpdated: false,
   ignoreDeadLinks: false,
   markdown: { theme: { light: "github-light", dark: "night-owl" } },
+  vite: { plugins: [rawFiles] },
   head: [
     ["link", { rel: "icon", type: "image/svg+xml", href: `${site.base}logo.svg` }],
     ["meta", { name: "theme-color", content: "#0b1f3a" }],
