@@ -189,3 +189,14 @@
   text-transform: uppercase;
   color: var(--ps-green-400);
 }
+
+/* The version switcher over the navy hero: it uses the nav's light text, so it needs a dark, translucent box. */
+.VPNavBar.home.top .version-switcher select {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+.VPNavBar.home.top .version-switcher select option {
+  background: var(--ps-navy-900);
+  color: #fff;
+}
