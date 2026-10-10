@@ -37,15 +37,21 @@ module PaystackSdk
     # The only addresses Paystack sends webhooks from, for both test and live.
     IP_ADDRESSES = %w[52.31.139.75 52.49.173.169 52.214.14.220].freeze
 
-    # Events Paystack documents. Paystack adds events over time, so an event
-    # outside this list is still returned by {Webhook.construct_event}.
+    # Events Paystack documents, plus ones Paystack was seen sending that its Webhooks page does not list.
+    # Paystack adds events over time, so an event outside this list is still returned by
+    # {Webhook.construct_event}.
+    #
+    # Documented on the Webhooks page, except `refund.needs-attention`, which only the Refunds guide
+    # names. Seen in the event log of a test integration (Webhook Events API) and not on the Webhooks
+    # page: `paymentrequest.draft`, `product.create`, `product.update` and `product.delete`.
     EVENTS = %w[
       charge.dispute.create charge.dispute.remind charge.dispute.resolve charge.success
       customeridentification.failed customeridentification.success
       dedicatedaccount.assign.failed dedicatedaccount.assign.success
       invoice.create invoice.payment_failed invoice.update
-      paymentrequest.pending paymentrequest.success
-      refund.failed refund.pending refund.processed refund.processing
+      paymentrequest.draft paymentrequest.pending paymentrequest.success
+      product.create product.delete product.update
+      refund.failed refund.needs-attention refund.pending refund.processed refund.processing
       subscription.create subscription.disable subscription.expiring_cards subscription.not_renew
       transfer.failed transfer.reversed transfer.success
     ].freeze
@@ -70,7 +76,7 @@ module PaystackSdk
         @data = payload.key?("data") ? Response.new(payload["data"]) : nil
       end
 
-      # @return [Boolean] Whether Paystack documents this event name
+      # @return [Boolean] Whether this event name is in {EVENTS} (documented, or seen sent by Paystack)
       def known?
         EVENTS.include?(event)
       end

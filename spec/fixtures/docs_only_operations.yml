@@ -1,0 +1,54 @@
+# Operations Paystack documents (https://paystack.com/docs/api/) that its OpenAPI spec does not have.
+#
+# The SDK implements these from the docs. Each one is listed here so that:
+#   * `bin/paystack-spec audit` knows the SDK calling it is deliberate, not a typo (it exits 1 for an
+#     endpoint that is in neither the spec nor this file);
+#   * `bin/paystack-spec docs-diff` marks it as recorded;
+#   * the contract checker (spec/support/paystack_contract.rb) still checks that requests carry only the
+#     query and body parameters the docs list.
+#
+# Each entry:
+#   operation: "METHOD /path"  with {variables}, as the docs write it
+#   summary:   the docs' title for it
+#   docs:      where it is documented
+#   query:     the query parameters the docs list
+#   body:      the body parameters the docs list
+#   verified:  what was observed against the Paystack test API, or why it was not called
+#
+# Never add an operation from the docs mirror alone: it must be on the canonical docs, and the entry must
+# say honestly what has and has not been observed.
+
+- operation: "GET /integration/webhooks/events"
+  summary: List Events
+  docs: https://paystack.com/docs/api/webhook-events/#list
+  query: [category, event_type, status, category_row_id, from, to, limit, next, previous]
+  body: []
+  verified: Called against the test API on 2026-10-09 (read-only). Returns the integration's webhook events with their delivery status; status takes Delivered, Pending or Failed; the page size defaults to 50 and is capped at 50 (the docs say 20 and a limit); next and previous are cursors from meta, and sending both is a 400.
+
+- operation: "GET /integration/webhooks/events/lookup"
+  summary: Look Up an Event
+  docs: https://paystack.com/docs/api/webhook-events/#lookup
+  query: [reference]
+  body: []
+  verified: Called against the test API on 2026-10-09 (read-only). Finds an event by its own id or by the id of the resource it is about (a transaction id); an unknown value is 404 "Webhook not found" and a missing reference is a 400.
+
+- operation: "GET /integration/webhooks/events/{id}"
+  summary: Fetch Event
+  docs: https://paystack.com/docs/api/webhook-events/#fetch
+  query: []
+  body: []
+  verified: Called against the test API on 2026-10-09 (read-only). Returns the event with event_payload (the body Paystack sent), webhook_url, merchant_response_body (what the endpoint answered) and trials.
+
+- operation: "POST /integration/webhooks/events/resend"
+  summary: Resend Events
+  docs: https://paystack.com/docs/api/webhook-events/#resend
+  query: []
+  body: [ids]
+  verified: Never called. It delivers webhooks to your endpoint, and the docs say resending is not idempotent. Follows the docs.
+
+- operation: "POST /integration/webhooks/events/resend-matching"
+  summary: Resend Matching Events
+  docs: https://paystack.com/docs/api/webhook-events/#resend-matching
+  query: [preview]
+  body: [filters]
+  verified: Never called. It can deliver every matching event to your endpoint; the docs say preview=true returns the count without resending, but that was not trusted enough to try. Follows the docs.

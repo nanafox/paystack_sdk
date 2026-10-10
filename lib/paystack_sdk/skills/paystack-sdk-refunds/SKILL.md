@@ -53,7 +53,7 @@ From Paystack's Refunds guide (docs.../payments/refunds) and the webhooks page:
 | `processing` | Received by the processor | `refund.processing` |
 | `processed` | Successfully processed. The guide adds that customers may still wait up to 10 business days for the funds | `refund.processed` |
 | `failed` | Could not be processed; the guide says your account reflects the credited amount again | `refund.failed` |
-| `needs-attention` | You must provide the customer's bank details | the guide names `refund.needs-attention`, which is **not** in `PaystackSdk::Webhook::EVENTS` (the SDK still returns unknown events from `construct_event`) |
+| `needs-attention` | You must provide the customer's bank details | the guide names `refund.needs-attention`, which is in `PaystackSdk::Webhook::EVENTS` (it is named in the Refunds guide but not on Paystack's Webhooks page) |
 
 ## What to record and how to treat a refund (design advice)
 

@@ -22,4 +22,13 @@ RSpec.describe "bin/paystack-spec audit", contract: false do
     # 32 operations at the time this was written; it can only grow as endpoints are added
     expect(covered).to be >= 32
   end
+
+  it "reports the documented-only operations the SDK implements, and fails for an endpoint in neither the spec nor that list" do
+    stdout, = audit
+
+    expect(stdout).to include("documented-only operation")
+    expect(stdout).to include("GET /integration/webhooks/events")
+    expect(stdout).to include("POST /integration/webhooks/events/resend-matching")
+    expect(stdout).not_to include("likely a bug")
+  end
 end

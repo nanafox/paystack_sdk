@@ -80,12 +80,13 @@ RSpec.describe "what paystack-sdk-refunds says", contract: false do
     expect(stub).to have_been_requested.once
   end
 
-  it "lists the refund webhook events the skill names, all in Webhook::EVENTS, and says needs-attention is not" do
+  it "lists the refund webhook events the skill names, all in Webhook::EVENTS, needs-attention included" do
     %w[refund.pending refund.processing refund.processed refund.failed].each do |event|
       expect(text).to include(event)
       expect(PaystackSdk::Webhook::EVENTS).to include(event)
     end
-    expect(PaystackSdk::Webhook::EVENTS).not_to include("refund.needs-attention")
+    expect(PaystackSdk::Webhook::EVENTS).to include("refund.needs-attention")
+    expect(text).to include("needs-attention")
   end
 
   describe "the helper code" do

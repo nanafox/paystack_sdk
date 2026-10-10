@@ -24,7 +24,7 @@ client.live? # => true only for a live key (sk_live_...)
 
 ## Pick the resource
 
-Each Paystack resource is a method on the client: `transactions`, `charges`, `customers`, `refunds`, `transfers`, `transfer_recipients`, `banks`, `miscellaneous`, `subaccounts`, `splits`, `settlements`, `disputes`, `balances`, `plans`, `subscriptions`, `payment_requests`, `pages`, `products`, `orders`, `storefronts`, `bulk_charges`, `dedicated_virtual_accounts`, `apple_pay`, `integrations`, `virtual_terminals`, `direct_debits`, `terminals`. The signature and a `@see` link to Paystack's docs are in each method's YARD comment in the gem; read them rather than guessing keywords.
+Each Paystack resource is a method on the client: `transactions`, `charges`, `customers`, `refunds`, `transfers`, `transfer_recipients`, `banks`, `miscellaneous`, `subaccounts`, `splits`, `settlements`, `disputes`, `balances`, `plans`, `subscriptions`, `payment_requests`, `pages`, `products`, `orders`, `storefronts`, `bulk_charges`, `dedicated_virtual_accounts`, `apple_pay`, `integrations`, `virtual_terminals`, `direct_debits`, `terminals`, `webhook_events` (the log of webhooks Paystack sent you; not in Paystack's OpenAPI spec). The signature and a `@see` link to Paystack's docs are in each method's YARD comment in the gem; read them rather than guessing keywords.
 
 ## Conventions
 
