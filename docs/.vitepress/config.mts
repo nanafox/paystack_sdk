@@ -29,6 +29,7 @@ export default defineConfig({
       { text: "Changelog", link: "/changelog" },
     ],
     sidebar: site.sidebar,
+    outline: { level: [2, 3], label: "On this page" },
     search: { provider: "local" },
     socialLinks: [{ icon: "github", link: repo }],
     editLink: { pattern: `${repo}/edit/main/README.md`, text: "Edit the README on GitHub" },

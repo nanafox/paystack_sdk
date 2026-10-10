@@ -20,7 +20,6 @@ require_relative "lib/llms_builder"
 module PaystackDocs
   class ContentBuild
     SITE = "https://nanafox.github.io"
-    GROUP_ORDER = ["Getting started", "Guides", "Advanced", "AI skills", "Skills", "Core", "Resources", "Project", "Changelog"].freeze
 
     def initialize(src:, out:, version:, base:)
       @src = File.expand_path(src)
@@ -84,12 +83,21 @@ module PaystackDocs
       end
     end
 
-    def write_site
-      sidebar = GROUP_ORDER.filter_map do |group|
-        items = pages.select { |p| p.group == group }
-        next if items.empty?
+    # One sidebar per section, so a reference page does not list forty guides.
+    SECTIONS = {
+      "/guide/" => ["Getting started", "Guides", "Advanced", "AI skills", "Project"],
+      "/reference/" => %w[Core Resources],
+      "/skills/" => %w[Skills]
+    }.freeze
 
-        {text: group, collapsed: %w[Resources].include?(group), items: items.map { |p| {text: p.title, link: "/#{p.path}"} }}
+    def write_site
+      sidebar = SECTIONS.transform_values do |groups|
+        groups.filter_map do |group|
+          items = pages.select { |p| p.group == group }
+          next if items.empty?
+
+          {text: group, collapsed: false, items: items.map { |p| {text: p.title, link: "/#{p.path}"} }}
+        end
       end
       File.write(File.join(@out, "site.json"), JSON.pretty_generate(version: @version, base: @base, sidebar: sidebar))
     end

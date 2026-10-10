@@ -16,3 +16,6 @@
   font-size: 13px;
   padding: 6px 12px;
 }
+/* method headings in the API reference read as names, not as code chips */
+.vp-doc h3 > code { font-size: 1.05em; }
+.vp-doc table { display: table; width: 100%; }
