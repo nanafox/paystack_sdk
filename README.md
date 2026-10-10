@@ -1,5 +1,7 @@
 # Paystack Ruby SDK: Simplify Payments
 
+[![Gem Version](https://badge.fury.io/rb/paystack_sdk.png)](https://badge.fury.io/rb/paystack_sdk)
+
 The `paystack_sdk` gem provides a simple and intuitive interface for interacting with Paystack's payment gateway API. It allows developers to easily integrate Paystack's payment processing features into their Ruby applications. With support for various endpoints, this SDK simplifies tasks such as initiating transactions, verifying payments, managing customers, and more.
 
 ## Table of Contents
