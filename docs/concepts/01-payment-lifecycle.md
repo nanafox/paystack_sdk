@@ -4,6 +4,8 @@ The payer pays on Paystack's checkout page, not on yours. Your server starts the
 
 ## The five steps
 
+<PaymentFlow />
+
 1. **Record it first.** Create your own payment row with a new `reference`, an `amount` in the currency's smallest unit (`5000` is GHS 50.00), a `currency` and the status `pending`. Save it before you call Paystack.
 2. **Start it.** `client.transactions.initiate(...)` with that reference. Redirect the payer to `response.authorization_url`.
 3. **The payer comes back** to your `callback_url`. Treat that request as "please check", nothing more: Paystack's own docs say a visit to the callback URL does not prove the transaction succeeded.

@@ -24,6 +24,7 @@ module PaystackDocs
 
     # Internal links (`](/guide/x#a)`) become absolute links to the raw markdown of the target.
     def absolutize(body)
+      body = body.gsub(/^<[A-Z]\w* \/>\n*/, "") # a Vue component has no text form; the prose beside it says the same
       Markdown.map_prose(body) do |line|
         line.gsub(%r{\]\((/[^)\s#]*)(#[^)\s]*)?\)}) { "](#{raw_url($1)}#{$2})" }
       end

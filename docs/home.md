@@ -4,7 +4,7 @@ title: Paystack Ruby SDK
 hero:
   name: paystack_sdk
   text: Take payments in Ruby without guessing.
-  tagline: A Ruby client for the Paystack API. Keyword arguments, input checked before anything is sent, and results you can trust with money. Version {{VERSION}}.
+  tagline: A Ruby client for the Paystack API. Keyword arguments, input checked before anything is sent, and results you can trust with money.
   image:
     src: /logo.svg
     alt: paystack_sdk

@@ -58,7 +58,8 @@ module PaystackDocs
         text = File.read(file)
         title = text[/^# (.+)$/, 1]
         slug = File.basename(file, ".md").sub(/\A\d+-/, "")
-        body = Markdown.map_prose(text) { |line| Markdown.escape_for_vue(line) }
+        # A line that is only a component (`<PaymentFlow />`) is meant for Vue: leave it alone.
+        body = Markdown.map_prose(text) { |line| line.match?(/\A<[A-Z]\w* \/>\s*\z/) ? line : Markdown.escape_for_vue(line) }
         ReadmeSplitter::Page.new(path: "concepts/#{slug}", title: title, group: "Concepts", body: body)
       end
     end

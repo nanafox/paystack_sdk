@@ -153,3 +153,44 @@
 }
 .VPNavBar.home.top .divider-line { background: transparent; }
 .VPNavBar.home.top .VPNavBarTitle .title { color: #fff; }
+
+/* Hero layout: a fixed-width text column and a panel that stays clear of it, at every width. */
+@media (min-width: 960px) {
+  .VPHome .VPHero.has-image .container {
+    max-width: 1152px;
+    gap: 56px;
+    align-items: center;
+  }
+  .VPHome .VPHero .main {
+    flex: 0 1 520px;
+    max-width: 520px;
+    width: auto;
+  }
+  .VPHome .VPHero .image {
+    flex: 1 1 0;
+    order: 2;
+    margin: 0;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+  .VPHome .VPHero .image-container {
+    width: 100%;
+    height: auto;
+    transform: none;
+  }
+  .VPHome .VPHero .text {
+    font-size: 46px;
+    line-height: 1.12;
+  }
+  .VPHome .VPHero .tagline {
+    font-size: 18px;
+    line-height: 1.6;
+    max-width: 30em;
+  }
+}
+@media (min-width: 1280px) {
+  .VPHome .VPHero .text { font-size: 52px; }
+}
+.ps-panel {
+  margin-left: auto;
+}
