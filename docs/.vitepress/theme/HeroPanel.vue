@@ -5,7 +5,7 @@
 
 <template>
   <div class="ps-panel" aria-label="Example: start a payment, then confirm it">
-    <div class="ps-panel-bar"><i /><i /><i /><span>payments_controller.rb</span></div>
+    <div class="ps-panel-bar"><span>payments_controller.rb</span></div>
 <pre><code><span class="k">client</span> = PaystackSdk::Client.new
 
 <span class="c"># 1. start the payment, send the payer to Paystack</span>

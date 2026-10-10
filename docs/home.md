@@ -3,8 +3,8 @@ layout: home
 title: Paystack SDK
 hero:
   name: Paystack SDK
-  text: Take payments in Ruby without guessing.
-  tagline: A Ruby client for the Paystack API. Keyword arguments, input checked before anything is sent, and results you can trust with money.
+  text: A Ruby client for the Paystack API
+  tagline: Keyword arguments, input checked before anything is sent, and responses that say what actually happened.
   image:
     src: /logo.svg
     alt: Paystack SDK
@@ -19,12 +19,12 @@ hero:
       text: API reference
       link: /reference/client
 features:
-  - title: Mirrors Paystack
-    details: Every endpoint follows Paystack's documentation and is checked in CI against its OpenAPI spec. Where the two disagree, the live test API settles it.
-  - title: Safe with money
-    details: Amounts are integers in the smallest unit, paid? checks amount and currency, writes are never retried after a timeout, and the secret key stays out of inspect output.
-  - title: Honest about results
-    details: success? means Paystack accepted the call, not that a charge worked. The docs say so on every page that matters, and so does the code.
+  - title: Follows Paystack's docs
+    details: Each endpoint is checked in CI against Paystack's OpenAPI spec. Where the docs and the spec disagree, the live test API decides.
+  - title: Careful with money
+    details: Amounts are integers in the smallest unit. paid? checks amount and currency. A write is never retried after a timeout, and the secret key stays out of inspect output.
+  - title: Results you can read
+    details: success? means Paystack accepted the call, not that a charge worked. The status and the amount are checked separately, and the docs say which is which.
 ---
 
 <script setup>

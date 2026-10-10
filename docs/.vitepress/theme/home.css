@@ -2,13 +2,10 @@
 .VPHome .VPHero {
   position: relative;
   padding: calc(var(--vp-nav-height) + 48px) 24px 72px;
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(120deg, var(--ps-green-300), var(--ps-green-500));
+  --vp-home-hero-name-color: var(--ps-green-400);
+  --vp-home-hero-name-background: none;
   --vp-home-hero-image-background-image: none;
-  background:
-    radial-gradient(900px 420px at 85% -10%, rgba(25, 195, 125, 0.22), transparent 60%),
-    radial-gradient(700px 380px at 0% 110%, rgba(27, 67, 115, 0.55), transparent 60%),
-    linear-gradient(180deg, var(--ps-navy-950), var(--ps-navy-900));
+  background: var(--ps-navy-900);
   color: #fff;
 }
 .VPHome .VPHero .text {
@@ -42,9 +39,8 @@
   width: 100%;
   max-width: 520px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--ps-radius);
-  background: rgba(6, 17, 38, 0.85);
-  box-shadow: var(--ps-shadow);
+  border-radius: var(--ps-radius-sm);
+  background: var(--ps-navy-950);
   overflow: hidden;
   text-align: left;
 }
@@ -56,15 +52,6 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font: 12px var(--ps-font-mono);
   color: #7f93ad;
-}
-.ps-panel-bar i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #2a4062;
-}
-.ps-panel-bar span {
-  margin-left: auto;
 }
 .ps-panel pre {
   margin: 0;
@@ -84,14 +71,9 @@
   padding-top: 48px;
 }
 .VPHome .VPFeature {
-  border-radius: var(--ps-radius);
+  border-radius: var(--ps-radius-sm);
   border: 1px solid var(--vp-c-divider);
-  background: var(--vp-c-bg-soft);
-  transition: border-color 0.2s, transform 0.2s;
-}
-.VPHome .VPFeature:hover {
-  border-color: var(--ps-green-500);
-  transform: translateY(-2px);
+  background: transparent;
 }
 .VPHome .VPFeature .title {
   letter-spacing: -0.01em;
@@ -103,7 +85,7 @@
   margin: 24px auto 72px;
   padding: 28px 32px;
   border-radius: var(--ps-radius);
-  background: linear-gradient(120deg, var(--ps-navy-900), var(--ps-navy-800));
+  background: var(--ps-navy-900);
   color: #e8eef7;
   display: grid;
   grid-template-columns: 1.2fr 1fr;
@@ -193,4 +175,17 @@
 }
 .ps-panel {
   margin-left: auto;
+}
+
+/* The project name is a label; the sentence under it is the headline. */
+.VPHome .VPHero .heading {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.VPHome .VPHero .name.clip {
+  font: 600 13px/1 var(--ps-font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ps-green-400);
 }

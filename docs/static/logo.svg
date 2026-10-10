@@ -1,11 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="paystack_sdk">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3DDC97"/>
-      <stop offset="1" stop-color="#0FA968"/>
-    </linearGradient>
-  </defs>
-  <rect x="4" y="4" width="56" height="56" rx="15" fill="url(#g)"/>
+  <rect x="4" y="4" width="56" height="56" rx="15" fill="#19C37D"/>
   <!-- a cut gem seen from above: the table and the facets -->
   <path d="M32 13 50 25 32 51 14 25Z" fill="none" stroke="#0B1F3A" stroke-width="3.2" stroke-linejoin="round"/>
   <path d="M14 25h36M24 25l8 26 8-26M24 25l8-12 8 12" fill="none" stroke="#0B1F3A" stroke-width="2.2" stroke-linejoin="round" opacity=".55"/>
