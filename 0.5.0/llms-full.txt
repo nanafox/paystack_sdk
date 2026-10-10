@@ -3627,6 +3627,80 @@ Everyone interacting in the PaystackSdk project's codebases, issue trackers, cha
 
 ---
 
+<!-- source: https://nanafox.github.io/paystack_sdk/0.5.0/md/concepts/payment-lifecycle.md -->
+
+# How a payment works
+
+The payer pays on Paystack's checkout page, not on yours. Your server starts the transaction, sends the payer to Paystack, and later asks Paystack what happened. Nothing the browser brings back counts as proof.
+
+## The five steps
+
+1. **Record it first.** Create your own payment row with a new `reference`, an `amount` in the currency's smallest unit (`5000` is GHS 50.00), a `currency` and the status `pending`. Save it before you call Paystack.
+2. **Start it.** `client.transactions.initiate(...)` with that reference. Redirect the payer to `response.authorization_url`.
+3. **The payer comes back** to your `callback_url`. Treat that request as "please check", nothing more: Paystack's own docs say a visit to the callback URL does not prove the transaction succeeded.
+4. **Ask Paystack.** `client.transactions.verify(reference:)`, and give value only if `paid?(amount:, currency:)` is true.
+5. **Do the same from the webhook.** The `charge.success` handler runs the same confirmation code as the callback.
+
+```ruby
+res = client.transactions.initiate(email: member.email, amount: 5000, currency: "GHS", reference: payment.reference)
+redirect_to res.authorization_url, allow_other_host: true
+
+# later, from the callback and from the webhook
+res = client.transactions.verify(reference: payment.reference)
+grant_access(payment) if res.paid?(amount: payment.amount, currency: payment.currency)
+```
+
+## Why steps 4 and 5 are the same code
+
+The callback and the webhook can arrive at the same moment, so confirming twice is normal. Write one confirmation that is safe to run twice: a unique `reference` column, a row lock, and a check of your own status inside the lock. Record what the payment buys in that same locked block, so it happens once. This is design advice, not Paystack behaviour; the [payments skill](https://nanafox.github.io/paystack_sdk/0.5.0/skills/paystack-sdk-payments.md) has a complete example.
+
+## When something goes wrong
+
+- **A timeout or a server error on `initiate`.** The SDK does not retry a write, and the request may have reached Paystack. Call `verify(reference:)`: "Transaction reference not found." means Paystack never created it. Either way, start again with a new reference and mark the old row failed.
+- **A reference used twice.** Paystack answers 400 "Duplicate Transaction Reference". One reference is one transaction, ever.
+- **A status you do not recognise.** Keep the row `pending`, log the status and reference, and do not guess.
+
+Next: [what a result means](https://nanafox.github.io/paystack_sdk/0.5.0/md/concepts/results-and-trust.md), and the [Transactions guide](https://nanafox.github.io/paystack_sdk/0.5.0/md/guide/transactions.md).
+
+
+---
+
+<!-- source: https://nanafox.github.io/paystack_sdk/0.5.0/md/concepts/results-and-trust.md -->
+
+# What a result means
+
+Most mistakes with a payment API come from reading one flag as another. This page is the short version of what each signal in `paystack_sdk` does and does not tell you.
+
+## `success?` is not "the payment worked"
+
+`response.success?` is true when Paystack accepted the call and answered with a success HTTP status. `transactions.verify` succeeds for any reference Paystack knows, paid or not. The outcome of the payment is in `data.status`.
+
+| You want to know | Look at | Not at |
+|---|---|---|
+| Was the call accepted? | `success?` | |
+| Was the customer charged the right amount? | `paid?(amount:, currency:)` | `success?` |
+| What state is the transaction in? | `status?(:success)`, or `data.status` | the HTTP status |
+| Why did a charge stop? | `data.status` and `gateway_response` | `success?` |
+
+## Three kinds of failure, three behaviours
+
+- **A call that cannot be valid** (a malformed email, an amount of `50.0`) raises `PaystackSdk::InvalidValueError` before anything is sent.
+- **A 400 or 404 from Paystack** comes back as a `Response` with `success?` false and an `error_message`. It does not raise.
+- **A bad key, a rate limit or a server error** (401, 429, 5xx) raises, so it cannot be mistaken for a result.
+
+## Trust your own record, not the browser
+
+Verify by `reference`, check the amount and currency with `paid?`, and compare the customer email before giving value. A redirect to your `callback_url` and a webhook body are both prompts to check, not proof.
+
+## Retries are conservative on purpose
+
+Reads retry on network errors and on 429, 502, 503 and 504. Writes retry only on 429, and never after a timeout, because a write that timed out may have succeeded. Retrying it could charge a customer twice.
+
+See the [Response reference](https://nanafox.github.io/paystack_sdk/0.5.0/md/reference/response.md), [Errors](https://nanafox.github.io/paystack_sdk/0.5.0/md/reference/errors.md) and the [money-safety skill](https://nanafox.github.io/paystack_sdk/0.5.0/skills/paystack-sdk-money-safety.md).
+
+
+---
+
 <!-- source: https://nanafox.github.io/paystack_sdk/0.5.0/md/reference/client.md -->
 
 # Client
