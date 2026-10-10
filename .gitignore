@@ -16,3 +16,10 @@
 Gemfile.lock
 # git worktrees created for parallel work
 /.claude/worktrees/
+
+# docs site
+/docs/node_modules/
+/docs/content/
+/docs/.vitepress/cache/
+/docs/.vitepress/dist/
+/docs/content-public/

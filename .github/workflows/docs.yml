@@ -1,0 +1,129 @@
+name: Docs
+
+# One build of the docs site per release tag, a `next` build from main, and a `latest` alias for the newest
+# release, all served from the gh-pages branch:  /paystack_sdk/<version>/  (see docs/scripts/versions.rb).
+#
+# The site tooling always comes from the commit that triggered the run; the content comes from `src`, which
+# is the same commit except when an older release is rebuilt by hand (workflow_dispatch with `ref`).
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths-ignore: ["spec/**", "bin/**", ".claude/**"]
+  pull_request:
+    paths: ["docs/**", "README.md", "CHANGELOG.md", "lib/**", ".github/workflows/docs.yml"]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag or commit to document (default: the commit this run is on)"
+        required: false
+      version:
+        description: "Version directory to publish it as, such as 0.5.0 (default: derived from the ref)"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build the docs (${{ github.event_name == 'pull_request' && 'check' || 'publish' }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the tooling
+        uses: actions/checkout@v4
+        with:
+          path: tools
+          fetch-depth: 0
+
+      - name: Checkout the content
+        if: github.event_name == 'workflow_dispatch' && inputs.ref != ''
+        uses: actions/checkout@v4
+        with:
+          path: src
+          ref: ${{ inputs.ref }}
+
+      - name: Content is the tooling checkout unless a ref was given
+        run: |
+          if [ ! -d src ]; then ln -s tools src; fi
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          working-directory: tools
+          bundler-cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/docs/package-lock.json
+
+      - name: Install site dependencies
+        working-directory: tools/docs
+        run: npm ci
+
+      - name: Work out what is being published
+        id: target
+        run: |
+          set -euo pipefail
+          ref_name="${{ inputs.ref || github.ref_name }}"
+          version="${{ inputs.version }}"
+          if [ -z "$version" ]; then
+            case "${{ github.ref_type }}-${{ inputs.ref }}" in
+              tag-)  version="${ref_name#v}" ;;
+              *-v*)  version="${ref_name#v}" ;;
+              *)     version="next" ;;
+            esac
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Publishing as: $version"
+
+      - name: Build (check only on pull requests)
+        working-directory: tools/docs
+        run: |
+          gem_version="$(ruby -e 'puts File.read("../../src/lib/paystack_sdk/version.rb")[/VERSION = "([^"]+)"/, 1]')"
+          shown="${{ steps.target.outputs.version }}"
+          [ "$shown" = "next" ] && shown="$gem_version (unreleased)"
+          bundle exec ruby scripts/build-content.rb --src ../../src --version "$shown" --base "/paystack_sdk/${{ steps.target.outputs.version }}/"
+          npm run build
+
+      - name: Publish to gh-pages
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          version="${{ steps.target.outputs.version }}"
+          dist="$PWD/tools/docs/content/.vitepress/dist"
+          if git ls-remote --exit-code --heads "https://github.com/${{ github.repository }}" gh-pages >/dev/null; then
+            git clone --depth 1 --branch gh-pages "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" site
+          else
+            mkdir site && git -C site init -b gh-pages
+            git -C site remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          fi
+          rm -rf "site/$version"
+          mkdir -p "site/$version"
+          cp -r "$dist"/. "site/$version/"
+
+          if [ "$version" != "next" ]; then
+            newest="$(ruby tools/docs/scripts/versions.rb site --print-latest)"
+            if [ "$newest" = "$version" ]; then
+              # `latest` is a separate build: its pages use /paystack_sdk/latest/ as their base.
+              (cd tools/docs && bundle exec ruby scripts/build-content.rb --src ../../src --version "$version" --base "/paystack_sdk/latest/" && npm run build)
+              rm -rf site/latest && mkdir site/latest && cp -r "$dist"/. site/latest/
+            fi
+          fi
+          ruby tools/docs/scripts/versions.rb site
+
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "Nothing changed"; exit 0; fi
+          git commit -m "docs: publish $version"
+          git push origin gh-pages
