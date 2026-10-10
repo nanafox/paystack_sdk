@@ -67,6 +67,8 @@
   keywords:
     code: id_or_code
 "PUT /plan/{code}":
+  keywords:
+    code: id_or_code
 
 # "Fetch Subscription": the docs name the path variable id_or_code; Paystack takes the subscription ID or code.
 "GET /subscription/{code}":
