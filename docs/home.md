@@ -27,11 +27,15 @@ features:
     details: success? means Paystack accepted the call, not that a charge worked. The docs say so on every page that matters, and so does the code.
 ---
 
+<script setup>
+import { withBase } from 'vitepress'
+</script>
+
 <div class="ps-band">
   <div>
     <span class="ps-eyebrow">For AI agents</span>
     <h2>Skills your coding agent can load</h2>
-    <p>Nine skills ship in the gem and teach an agent the conventions, the flows and the money-safety checks. Every page here is also raw markdown, with <a href="llms.txt">llms.txt</a> and <a href="llms-full.txt">llms-full.txt</a>. <a href="skills/">See the skills</a>.</p>
+    <p>Nine skills ship in the gem and teach an agent the conventions, the flows and the money-safety checks. Every page here is also raw markdown, with <a :href="withBase('/llms.txt')">llms.txt</a> and <a :href="withBase('/llms-full.txt')">llms-full.txt</a>. <a :href="withBase('/skills/')">See the skills</a>.</p>
   </div>
   <pre><code><span class="p">$</span> bundle exec paystack_sdk skills install
 <span class="p">$</span> bin/rails generate paystack_sdk:skills</code></pre>
