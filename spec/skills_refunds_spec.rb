@@ -52,6 +52,10 @@ RSpec.describe "what paystack-sdk-refunds says", contract: false do
     expect { client.refunds.create(transaction: "") }.to raise_error(PaystackSdk::ValidationError)
   end
 
+  it "refuses a reference where list takes the numeric transaction id, instead of returning an empty list" do
+    expect { client.refunds.list(transaction_id: "refskill-123") }.to raise_error(PaystackSdk::InvalidValueError, /numeric ID/)
+  end
+
   it "sends transaction_id as transaction and per_page as perPage" do
     stub_json(:get, "/refund?transaction=55&perPage=5", {status: true, message: "Refunds retrieved", data: []})
 

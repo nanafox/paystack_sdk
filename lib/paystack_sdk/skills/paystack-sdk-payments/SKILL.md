@@ -25,7 +25,7 @@ The payer pays on Paystack's checkout page, not on yours. Your server starts the
 | `reference:` | Yours, unique, stored first. The SDK accepts letters, digits and `-` `.` `=` `_`. Use letters, digits and `-` only: Paystack's docs list `-`, `.`, `=` and alphanumerics (an `_` was accepted on the test API, but it is not documented) |
 | `callback_url:` | Where Paystack sends the payer after paying. It overrides the dashboard setting; with neither set, the payer is not sent back (docs) |
 | `channels:` | An Array limiting the checkout, e.g. `["card", "mobile_money"]`. The docs list `card`, `bank`, `apple_pay`, `ussd`, `qr`, `mobile_money`, `bank_transfer`, `eft`, `capitec_pay`, `payattitude`. The SDK sends it unchecked |
-| `metadata:` | A Hash; the SDK sends it as a JSON object (the docs say a stringified one; the object was accepted). Numbers came back as strings (`{order_id: 42}` from `verify` as `"42"`), so look payments up by your reference, not by metadata |
+| `metadata:` | A Hash (or a JSON string). The SDK sends it stringified, as Paystack documents it, so numbers keep their type (`{order_id: 42}` comes back from `verify` as `42`; sent as a plain object Paystack would store `"42"`: observed on the test API 2026-10-09). Look payments up by your reference, not by metadata |
 
 The method also takes `plan:`, `invoice_limit:`, `split_code:`, `split:`, `subaccount:`, `transaction_charge:`, `bearer:` and `label:`. It has no `first_name:`, `last_name:` or `phone:` keyword.
 
@@ -87,7 +87,7 @@ A reference Paystack does not know: `verify` returns HTTP 400, `success?` false,
 
 On a paid transaction, `verify` returned (test API): `id`, `status` `success`, `reference`, `amount` `100`, `currency` `GHS`, `paid_at`, `channel` `card`, `gateway_response` "Successful", your `metadata`, `customer` (`id`, `email`, `customer_code`) and `authorization` (`authorization_code`, `reusable` true, `channel`, plus card details: `bin`, `last4`, `exp_month`, `exp_year`, `brand`, `bank`, `signature`). On an unpaid one, `paid_at` was `null` and `authorization` was `{}`.
 
-Dot access (`response.paid_at`) raises `NoMethodError` when Paystack leaves a key out; `response[:paid_at]` or `response.original_response["data"]["paid_at"]` gives `nil` instead. Read fields that may be missing that way.
+Dot access (`response.paid_at`) raises `NoMethodError` when Paystack leaves a key out. Read a field that may be missing with `response.dig(:paid_at)` (or `response.dig(:authorization, :authorization_code)`): it returns `nil` as soon as a key is missing.
 
 ## Confirming twice is normal (design advice)
 
@@ -178,7 +178,7 @@ page.each { |transaction| puts transaction.reference }
 page.meta.total # also page.meta.pageCount, page.meta.perPage
 ```
 
-- `per_page:` is sent as `perPage`; `customer_id:` is sent as `customer` and is Paystack's **numeric** customer ID (`data.customer.id` from verify). A `CUS_` code is not rejected: the test API answered `success?` true with no rows.
+- `per_page:` is sent as `perPage`; `customer_id:` is sent as `customer` and is Paystack's **numeric** customer ID (`data.customer.id` from verify). Paystack answers a `CUS_` code with `success?` true and no rows, which looks like "no payments", so the SDK refuses anything but a numeric ID (an Integer, or a string of digits) with `InvalidValueError` before sending.
 - `status:` is checked by the SDK: `success`, `failed`, `abandoned` or `reversed`.
 - `from:` and `to:` take a `Date`, a `Time` or an ISO 8601 String.
 

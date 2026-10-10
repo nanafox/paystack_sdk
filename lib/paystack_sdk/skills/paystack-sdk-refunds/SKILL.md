@@ -37,7 +37,7 @@ Keywords: `create(transaction:, amount:, currency:, customer_note:, merchant_not
 | Then refund 250 (200 left), and `create` with `amount` omitted | **Both rejected: "Total refund amount cannot exceed original transaction amount".** With `amount` omitted Paystack asks for the whole original amount, not the remainder. After a partial refund, always pass the amount. |
 | Then refund 100 (exactly part of the rest) | Accepted, `pending`. Two refunds on one transaction both appeared in `list(transaction_id:)`. |
 | `currency: "USD"` on a GHS transaction | Rejected: "Transaction currency must match refund currency". |
-| `list(transaction_id: <numeric id>)` | The transaction's refunds. `list(transaction_id: "<reference>")` returned an empty list, not an error: **a reference finds nothing, so never read "empty" as "no refund exists" unless you passed the numeric id.** |
+| `list(transaction_id: <numeric id>)` | The transaction's refunds. Paystack answers a reference passed here with an empty list, not an error (observed on the test API), so the SDK refuses anything but a numeric ID (an Integer, or a string of digits) with `InvalidValueError` before sending. Find a refund by its transaction's numeric `data.id` from `verify`, not its reference. |
 | `transactions.verify(reference:)` after a refund (full or partial) | `data.status` was `reversal-pending`, not `success`, so `paid?` returned `false`. A refunded payment no longer verifies as paid; do not re-verify an old payment and "un-grant" it because of that. |
 | Refund status over the next minutes | Every refund stayed `pending` (`refunded_at` null). I did not see `processing`, `processed` or `failed`, nor `reversal-pending` change. |
 

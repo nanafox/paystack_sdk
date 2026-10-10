@@ -39,8 +39,9 @@
   in: query
   wire: customer
   spec: customer
+  type: integer
   ruby: customer_id
-  reason: Naming only. The wire name matches the spec; the Ruby keyword is customer_id for consistency with List Transactions, since the value is the numeric customer ID.
+  reason: The Ruby keyword is customer_id for consistency with List Transactions, since the value is the numeric customer ID, and the docs type it as an integer where the spec says number. Confirmed against the Paystack test API on 2026-10-09 that customer=<numeric id> filters the export and customer=CUS_nope or customer=abc returns no rows with no error, so the SDK refuses anything but a numeric ID.
   docs: https://paystack.com/docs/api/transaction/#export
 
 - operation: "GET /transaction"
@@ -652,3 +653,18 @@
   description: Filter virtual terminals by status, active or inactive.
   reason: Listed on the docs' List Virtual Terminals section but absent from the spec. Confirmed against the Paystack test API on 2026-10-09, where status=bogus returned 400 "\"status\" must be one of [active, inactive]" while status=active and status=inactive returned 200. The account has no virtual terminals, so the filtering itself was not observed.
   docs: https://paystack.com/docs/api/virtual-terminal/#list
+
+- operation: "POST /transaction/initialize"
+  in: body
+  wire: metadata
+  spec: metadata
+  type: string
+  description: Custom data as a JSON object (a Hash, or a JSON string). The SDK sends it stringified, which is how Paystack documents it.
+  reason: >-
+    Paystack's docs describe metadata as a stringified JSON object, while the spec types it as an object.
+    Confirmed against the Paystack test API on 2026-10-09 that both forms are accepted but stored differently,
+    in the same way on /transaction/initialize and /transaction/charge_authorization. Sent as an object, a
+    nested number is stored as a string (a value of 42 comes back as "42"); sent as a stringified JSON object,
+    it keeps its type (42 stays 42). The SDK already stringified it on charge_authorization, so initiate now
+    does too, and both keep the types of the values.
+  docs: https://paystack.com/docs/api/transaction/#initialize

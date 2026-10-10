@@ -346,6 +346,11 @@ def convention_checks(p)
   if p.info[:type] == "integer" && %w[amount page perPage per_page].include?(p.wire)
     checks << %(validate_positive_integer!(value: #{p.keyword}, name: "#{p.wire}"))
   end
+  # a numeric ID that filters or selects (customer_id, plan_id...): Paystack returns an empty result, not an
+  # error, when it is given a code instead
+  if p.info[:type] == "integer" && p.keyword.to_s.end_with?("_id")
+    checks << %(validate_numeric_id!(value: #{p.keyword}, name: "#{p.wire}"#{", allow_nil: false" if p.required}))
+  end
   if p.wire == "reference" && p.info[:type] == "string"
     suffix = p.required ? "" : " unless #{p.keyword}.nil?"
     checks << %(validate_reference_format!(reference: #{p.keyword}, name: "reference")#{suffix})

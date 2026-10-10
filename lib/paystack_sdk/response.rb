@@ -248,6 +248,31 @@ module PaystackSdk
       end
     end
 
+    # Reads a nested value from the data, or nil as soon as a key is missing. Use it for fields Paystack
+    # only sometimes sends (`paid_at`, `authorization.exp_month`...): dot access raises `NoMethodError`
+    # for a key that is not there, which is what you want for a typo and not for an optional field.
+    # Keys can be strings or symbols; an Integer indexes an Array. The value is returned as it is (a
+    # plain Hash, Array or scalar), like `Hash#dig`.
+    #
+    # @param keys [Array<String, Symbol, Integer>] The path to the value
+    # @return [Object, nil] The value, or nil if any key along the path is missing
+    #
+    # @example
+    #   response.dig(:authorization, :authorization_code) # => "AUTH_..." or nil
+    def dig(*keys)
+      raise ArgumentError, "dig needs at least one key" if keys.empty?
+
+      keys.reduce(@raw_data) do |node, key|
+        value = case node
+        when Hash then [key, key.to_s, key.to_s.to_sym].find { |candidate| node.key?(candidate) }&.then { |found| node[found] }
+        when Array then key.is_a?(Integer) ? node[key] : nil
+        end
+        return nil if value.nil?
+
+        value
+      end
+    end
+
     # Check if key exists in hash (as a string or a symbol)
     #
     # @param key [Symbol, String] The key to check

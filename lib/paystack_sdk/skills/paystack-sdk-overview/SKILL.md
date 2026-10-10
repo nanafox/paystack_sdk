@@ -42,12 +42,13 @@ Every call returns a `PaystackSdk::Response`.
 response = client.transactions.verify(reference: "order-1042")
 
 response.success?          # the call succeeded
-response.status            # a field of Paystack's data, by dot access
+response.status            # a field of Paystack's data, by dot access (raises NoMethodError if the key is absent)
 response.customer.email    # nested fields too
 response[:amount]          # hash-style works with strings or symbols
 response.paid?(amount: 5000, currency: "GHS") # success + status "success" + amount and currency match
 response.status?(:send_pin)                   # compare the "status" field with any value
 response.meta              # pagination: total, page, pageCount, perPage
+response.dig(:authorization, :authorization_code) # nil if any key is missing: use it for optional fields
 response.original_response # the raw body, for anything not wrapped
 response.error_message     # Paystack's message when the call did not succeed
 ```

@@ -4,6 +4,7 @@
 
 ### Added
 
+- `Response#dig(*keys)` reads a nested value and returns `nil` as soon as a key is missing, for fields Paystack only sometimes sends (`response.dig(:authorization, :authorization_code)`). Dot access still raises `NoMethodError` for a key that is not there, which catches typos.
 - Skills `paystack-sdk-charge-statuses` (what each charge `status` means, what to show the payer, which `charges.*` call comes next, and why `success?` is not "the charge worked"; the flows were reproduced on the test API with Paystack's test cards) and `paystack-sdk-mobile-money` (Ghana providers and codes, the phone number form, the 180-second approval window, how the result arrives, and what test mode does not prove). Specs run what they say.
 - Skill `paystack-sdk-webhooks`: receiving Paystack webhooks in Rails or Rack with `PaystackSdk::Webhook` (signature over the raw body, `verify!` vs `valid_signature?` vs `construct_event` and their errors, CSRF, the optional IP allow-list, answering 200 fast, the documented retry policy, duplicate and out-of-order deliveries, verifying by reference before granting value, the documented events, and testing with a signed request). Its Ruby is run by `spec/skills_webhooks_spec.rb`; payload fields beyond Paystack's one documented sample are marked unverified.
 - Skill `paystack-sdk-refunds`: full and partial refunds, the pending-until-processed lifecycle, what to record, refund webhooks, and what to do after a timeout. Includes what the test API showed (a GHS 1.00 minimum per refund, an omitted `amount` asks for the whole original amount and fails after a partial refund, a refunded transaction verifies as `reversal-pending`) and marks the rest unverified.
@@ -17,6 +18,11 @@
 ### Security
 
 - The secret key no longer appears when a `Client`, a resource (`client.transactions`...) or the Faraday connection is inspected. Ruby's default `inspect` and `pp` printed every instance variable, and the connection holds the key in its `Authorization` header, so `puts client`, `Rails.logger.info(client)`, an error page, or an error tracker that serialises locals wrote the key out. `Client#inspect` and `Resources::Base#inspect` now return only the class name, and the connection built by the SDK (and its `headers`) inspect without the key. The key is still sent. Errors raised by the SDK, their causes and `Response` never contained the key (checked). Affects every version before this one: if you may have logged one of these objects, rotate the key. A connection you pass in yourself (`Client.new(connection)`) is yours, and its own `inspect` is unchanged.
+
+### Fixed
+
+- `transactions.initiate` now sends `metadata` stringified, as `charge_authorization` already did and as Paystack documents it. Paystack accepts an object too, but stores it differently: a nested number comes back as a string (`{count: 42}` as `{"count" => "42"}`), whereas a stringified object keeps it (`42`). Checked against the test API. If you read numbers back out of `metadata`, they are now numbers.
+- Filters that take a numeric ID (`customer_id:` on `transactions.list`, `transactions.export`, `subscriptions.list` and `payment_requests.list`, `plan_id:` on `subscriptions.list`, `transaction_id:` on `refunds.list`, `authorization_id:` on `customers.direct_debit_activation_charge`) now refuse anything but a numeric ID (an Integer, or a string of digits) with `InvalidValueError`. Paystack answers a code such as `CUS_abc123` there with an empty list and no error, which looks like "no results". If you passed a code to one of these, you were silently getting nothing.
 
 ## [0.4.0] - 2026-10-09
 

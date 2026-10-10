@@ -103,6 +103,7 @@ The `paystack_sdk` gem provides a simple and intuitive interface for interacting
     - [Update, Commission and Decommission](#update-commission-and-decommission)
   - [Response Handling](#response-handling)
     - [Working with Response Objects](#working-with-response-objects)
+    - [Optional Fields: `dig`](#optional-fields-dig)
     - [Accessing the Original Response](#accessing-the-original-response)
     - [Error Handling](#error-handling)
 - [Advanced Usage](#advanced-usage)
@@ -1839,6 +1840,21 @@ response.meta.perPage    # => 20
 ```
 
 `response.meta` is `nil` when the response has no `meta`.
+
+#### Optional Fields: `dig`
+
+Dot access raises `NoMethodError` for a key that is not in the response. That is what you want for a typo, but not for a field Paystack only sometimes sends (`paid_at` on an unpaid transaction, `authorization` details on a payment without a card). Read those with `dig`: it returns `nil` as soon as a key along the path is missing, accepts strings or symbols (and an Integer to index an Array), and returns the value as it is, like `Hash#dig`.
+
+```ruby
+response = paystack.transactions.verify(reference: "order-1042")
+
+response.dig(:paid_at)                              # => "2025-06-01T10:00:00.000Z" or nil
+response.dig(:authorization, :authorization_code)   # => "AUTH_xxxx" or nil
+response.dig(:customer, :email)                     # => "ama@example.com"
+response.dig(:log, :history, 0, :message)           # an Integer indexes an Array
+```
+
+`response[:key]` also gives `nil` for a missing key, but wraps what it finds in a `Response`; `dig` gives you the plain value.
 
 #### Accessing the Original Response
 
