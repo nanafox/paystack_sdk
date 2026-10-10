@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-10
+
+### Upgrading from 0.4
+
+Two behaviours changed in small ways. Check them if you use these calls:
+
+- `transactions.initiate` sends `metadata` stringified, as Paystack documents it, so numbers in it keep their type when you read them back (`{count: 42}` stays `42`; it used to come back as `"42"`).
+- Filters that take a numeric ID (`customer_id:`, `plan_id:`, `transaction_id:` and `authorization_id:`) raise `InvalidValueError` for anything but a numeric ID. Paystack used to answer a code such as `CUS_abc123` there with an empty list and no error, so if you passed one you were silently getting nothing.
+
+If you are on 0.4.0, take 0.4.1 first if you only need the security fix.
+
 ### Added
 
 - `Response#dig(*keys)` reads a nested value and returns `nil` as soon as a key is missing, for fields Paystack only sometimes sends (`response.dig(:authorization, :authorization_code)`). Dot access still raises `NoMethodError` for a key that is not there, which catches typos.
@@ -18,15 +29,17 @@
 - AI skills for Claude Code, shipped in the gem and installed with `paystack_sdk skills install` (any Ruby project) or `rails generate paystack_sdk:skills` (Rails) into `.claude/skills/`. The first skill is `paystack-sdk-overview`. Installing is idempotent, writes only `paystack-sdk-<topic>` folders marked with `.paystack_sdk.json`, never overwrites a folder it did not install (`--force` to replace), removes only its own stale folders, stamps each `SKILL.md` with the gem version, and supports `--dir`, `--global` and `--dry-run`. Also `skills list`, `skills path` and `skills uninstall`.
 - The `paystack_sdk` executable (`exe/paystack_sdk`); it handles the skills and `version` and does not load Faraday.
 
-### Security
-
-- The secret key no longer appears when a `Client`, a resource (`client.transactions`...) or the Faraday connection is inspected. Ruby's default `inspect` and `pp` printed every instance variable, and the connection holds the key in its `Authorization` header, so `puts client`, `Rails.logger.info(client)`, an error page, or an error tracker that serialises locals wrote the key out. `Client#inspect` and `Resources::Base#inspect` now return only the class name, and the connection built by the SDK (and its `headers`) inspect without the key. The key is still sent. Errors raised by the SDK, their causes and `Response` never contained the key (checked). Affects every version before this one: if you may have logged one of these objects, rotate the key. A connection you pass in yourself (`Client.new(connection)`) is yours, and its own `inspect` is unchanged.
-
 ### Fixed
 
 - `transactions.initiate` now sends `metadata` stringified, as `charge_authorization` already did and as Paystack documents it. Paystack accepts an object too, but stores it differently: a nested number comes back as a string (`{count: 42}` as `{"count" => "42"}`), whereas a stringified object keeps it (`42`). Checked against the test API. If you read numbers back out of `metadata`, they are now numbers.
 - Filters that take a numeric ID (`customer_id:` on `transactions.list`, `transactions.export`, `subscriptions.list` and `payment_requests.list`, `plan_id:` on `subscriptions.list`, `transaction_id:` on `refunds.list`, `authorization_id:` on `customers.direct_debit_activation_charge`) now refuse anything but a numeric ID (an Integer, or a string of digits) with `InvalidValueError`. Paystack answers a code such as `CUS_abc123` there with an empty list and no error, which looks like "no results". If you passed a code to one of these, you were silently getting nothing.
 - Passing a String date or date-time to a `from:` or `to:` filter (`transactions.list(from: "2026-10-01")`, and every other date filter) raised `NoMethodError: undefined method 'iso8601' for class Time` in a plain Ruby process, because the gem never loaded Ruby's `time` library. It only worked where something else had loaded it, such as Rails or RSpec. The gem now requires it. A Date or Time object was never affected.
+
+## [0.4.1] - 2026-10-10
+
+### Security
+
+- The secret key no longer appears when a `Client`, a resource (`client.transactions`...) or the Faraday connection is inspected. Ruby's default `inspect` and `pp` printed every instance variable, and the connection holds the key in its `Authorization` header, so `puts client`, `Rails.logger.info(client)`, an error page, or an error tracker that serialises locals wrote the key out. `Client#inspect` and `Resources::Base#inspect` now return only the class name, and the connection built by the SDK (and its `headers`) inspect without the key. The key is still sent. Errors raised by the SDK, their causes and `Response` never contained the key (checked). Affects every version before 0.4.1 (0.0.x to 0.4.0): if you may have logged one of these objects, rotate the key. A connection you pass in yourself (`Client.new(connection)`) is yours, and its own `inspect` is unchanged.
 
 ## [0.4.0] - 2026-10-09
 
