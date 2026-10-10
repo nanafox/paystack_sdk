@@ -35,6 +35,13 @@ module PaystackSdk
         @connection = initialize_connection(connection, secret_key: secret_key, **options)
       end
 
+      # A short description that never includes the secret key; see {PaystackSdk::Client#inspect}.
+      #
+      # @return [String]
+      def inspect
+        "#<#{self.class.name}>"
+      end
+
       private
 
       # Handles the API response, wrapping it in a Response object.

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-10
+
+### Security
+
+- The secret key no longer appears when a `Client`, a resource (`client.transactions`...) or the Faraday connection is inspected. Ruby's default `inspect` and `pp` printed every instance variable, and the connection holds the key in its `Authorization` header, so `puts client`, `Rails.logger.info(client)`, an error page, or an error tracker that serialises locals wrote the key out. `Client#inspect` and `Resources::Base#inspect` now return only the class name, and the connection built by the SDK (and its `headers`) inspect without the key. The key is still sent. Errors raised by the SDK, their causes and `Response` never contained the key (checked). Affects every version before 0.4.1 (0.0.x to 0.4.0): if you may have logged one of these objects, rotate the key. A connection you pass in yourself (`Client.new(connection)`) is yours, and its own `inspect` is unchanged.
+
 ## [0.4.0] - 2026-10-09
 
 ### Added

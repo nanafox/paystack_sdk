@@ -8,6 +8,9 @@ RSpec.describe PaystackSdk::Client do
     described_class.new(secret_key: secret_key)
   end
 
+  # The SDK redacts the key from the connection's inspect, which touches its headers.
+  before { allow(connection_double).to receive(:headers).and_return({}) }
+
   describe "#initialize" do
     it "initializes a new client with the given API key" do
       expect(client).to be_a(PaystackSdk::Client)
