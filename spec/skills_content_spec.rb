@@ -11,6 +11,13 @@ RSpec.describe "the AI skills shipped in the gem", contract: false do
     expect(skills.map(&:name)).to include("paystack-sdk-overview")
   end
 
+  it "routes to every other skill from the overview, so an agent that loads the overview first can find them" do
+    overview = File.read(File.join(PaystackSdk::Skills::SOURCE_DIR, "paystack-sdk-overview", "SKILL.md"))
+    linked = overview.scan(/\[\[([\w-]+)\]\]/).flatten
+
+    expect(skills.map(&:name) - ["paystack-sdk-overview"] - linked).to be_empty
+  end
+
   skills.each do |skill|
     describe skill.name do
       let(:text) { File.read(File.join(skill.path, "SKILL.md")) }

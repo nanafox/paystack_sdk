@@ -130,7 +130,7 @@ Also observed: after `customers.deactivate_authorization`, `verify` of the old r
 
 ## 7. Mobile money is not a saved card
 
-A paid test mobile money charge (`0551234987`, `mtn`, observed 2026-10-09) returned an authorization with `reusable: false`, `signature: nil` and `channel: "mobile_money"`, and charging its code was refused (table above). There is no token to renew with: each mobile money renewal is a new payer-approved charge (see the `paystack-sdk-mobile-money` skill), or a payment link sent to the payer.
+A paid test mobile money charge (`0551234987`, `mtn`, observed 2026-10-09) returned an authorization with `reusable: false`, `signature: nil` and `channel: "mobile_money"`, and charging its code was refused (table above). There is no token to renew with: each mobile money renewal is a new payer-approved charge (see the [[paystack-sdk-mobile-money]] skill), or a payment link sent to the payer.
 
 ## 8. Dunning (design advice, not Paystack behaviour)
 

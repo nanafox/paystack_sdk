@@ -91,7 +91,7 @@ Do not pass `retry_non_idempotent: true` to `PaystackSdk::Client.new`. It makes 
 
 ## 8. Webhooks
 
-The gem's `PaystackSdk::Webhook` checks the signature (`construct_event`, `valid_signature?`, `verify!`) and the documented sender addresses (`trusted_ip?`). The paystack-sdk-webhooks skill covers the handler in full. For money safety:
+The gem's `PaystackSdk::Webhook` checks the signature (`construct_event`, `valid_signature?`, `verify!`) and the documented sender addresses (`trusted_ip?`). The [[paystack-sdk-webhooks]] skill covers the handler in full. For money safety:
 
 - Verify the signature on the raw body before anything else. The IP check is optional, a second check, never a replacement.
 - Respond `200 OK` fast and do the work in a job. Paystack's webhooks page says unacknowledged events are retried (every 3 minutes for 4 tries, then hourly for 72 hours in live mode; hourly for 10 hours in test mode; 30 second timeout). Documented, not observed.

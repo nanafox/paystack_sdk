@@ -149,11 +149,13 @@ RSpec.describe "what paystack-sdk-testing says", contract: false do
       expect(PaystackSdk::Client.instance_method(:live?)).not_to be_nil
       expect(PaystackSdk::Client.instance_method(:initialize).parameters).to include([:key, :sandbox_only], [:keyrest, :options])
       expect(PaystackSdk::Webhook::IP_ADDRESSES.size).to eq(3)
-      expect(skill_text).to include("[[paystack-sdk-overview]]", "`paystack-sdk-mobile-money`", "`paystack-sdk-charge-statuses`")
+      expect(skill_text).to include("[[paystack-sdk-overview]]", "[[paystack-sdk-mobile-money]]", "[[paystack-sdk-charge-statuses]]")
     end
 
-    it "mentions no link to a skill that is not shipped yet" do
-      expect(skill_text).not_to include("[[paystack-sdk-webhooks]]")
+    it "links only to skills that are shipped (the content spec resolves every [[link]])" do
+      links = skill_text.scan(/\[\[([\w-]+)\]\]/).flatten
+
+      expect(links - PaystackSdk::Skills.all.map(&:name)).to be_empty
     end
   end
 

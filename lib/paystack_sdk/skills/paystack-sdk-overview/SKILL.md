@@ -80,6 +80,19 @@ Reads (GET) retry on network errors and on 429/502/503/504. **Writes retry only 
 3. **Branch on `success?` for every call** (see the table above).
 4. **Keep secret keys out of code and logs**, and use `sandbox_only: true` outside production.
 
+## Topic skills: load the one that matches the task
+
+| You are... | Load |
+|---|---|
+| Taking a payment through Paystack's hosted checkout (initiate, redirect, verify) | [[paystack-sdk-payments]] |
+| Reacting to what a Charge API call returns (`send_pin`, `send_otp`, `pay_offline`, `failed`...) | [[paystack-sdk-charge-statuses]] |
+| Charging a mobile money wallet (Ghana: MTN, Telecel, AT Money) | [[paystack-sdk-mobile-money]] |
+| Charging a customer's saved card again (renewals, recurring giving) | [[paystack-sdk-saved-card-renewals]] |
+| Receiving Paystack webhooks | [[paystack-sdk-webhooks]] |
+| Refunding a payment | [[paystack-sdk-refunds]] |
+| Writing tests for code that calls Paystack | [[paystack-sdk-testing]] |
+| Reviewing or writing anything that handles money or keys (apply it before merging payment code) | [[paystack-sdk-money-safety]] |
+
 ## What the gem's maintainers have not verified
 
 Nothing has been exercised with a live key. Some operations could not be exercised against Paystack's test API either, and the README marks them "unverified": terminals, dedicated virtual accounts, and the state-changing calls on Apple Pay, integrations, virtual terminals and direct debits. Do not tell a user such a call works; say it follows Paystack's documentation and has not been confirmed. Test mode also does not model everything live mode does (for example, a mobile money charge answers `success` at once in test mode).
