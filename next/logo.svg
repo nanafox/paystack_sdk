@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="paystack_sdk">
+  <rect x="4" y="4" width="56" height="56" rx="15" fill="#19C37D"/>
+  <!-- a cut gem seen from above: the table and the facets -->
+  <path d="M32 13 50 25 32 51 14 25Z" fill="none" stroke="#0B1F3A" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="M14 25h36M24 25l8 26 8-26M24 25l8-12 8 12" fill="none" stroke="#0B1F3A" stroke-width="2.2" stroke-linejoin="round" opacity=".55"/>
+  <!-- the check: the payment is confirmed -->
+  <path d="M23.5 31.5 29.5 37.5 41 23" fill="none" stroke="#0B1F3A" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

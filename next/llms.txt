@@ -55,6 +55,8 @@
 - [Webhooks](https://nanafox.github.io/paystack_sdk/next/md/guide/webhooks.md): Paystack tells you about changes (a charge succeeded, a refund was processed, a transfer failed) by POSTing events to your webhook URL.
 - [Environment Variables](https://nanafox.github.io/paystack_sdk/next/md/guide/environment-variables.md): You can use environment variables to configure the SDK:
 - [Direct Resource Instantiation](https://nanafox.github.io/paystack_sdk/next/md/guide/direct-resource-instantiation.md): For more advanced usage, you can instantiate resource classes directly:
+- [How a payment works](https://nanafox.github.io/paystack_sdk/next/md/concepts/payment-lifecycle.md): The payer pays on Paystack's checkout page, not on yours.
+- [What a result means](https://nanafox.github.io/paystack_sdk/next/md/concepts/results-and-trust.md): Most mistakes with a payment API come from reading one flag as another.
 
 ## API reference
 
