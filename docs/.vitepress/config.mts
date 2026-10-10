@@ -30,7 +30,7 @@ const repo = "https://github.com/nanafox/paystack_sdk"
 
 export default defineConfig({
   srcDir: "content",
-  title: "paystack_sdk",
+  title: "Paystack SDK",
   description: "A Ruby client for the Paystack API",
   base: site.base,
   cleanUrls: true,
@@ -46,7 +46,7 @@ export default defineConfig({
   ],
   themeConfig: {
     logo: "/logo.svg",
-    siteTitle: "paystack_sdk",
+    siteTitle: "Paystack SDK",
     nav: [
       { text: "Guides", link: "/guide/introduction", activeMatch: "/guide/" },
       { text: "Concepts", link: "/concepts/payment-lifecycle", activeMatch: "/concepts/" },
