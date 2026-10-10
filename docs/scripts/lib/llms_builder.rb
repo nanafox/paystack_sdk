@@ -68,7 +68,7 @@ module PaystackDocs
       lines << "- [Skills index](#{@site_url}skills/index.md): every skill, and when to load it"
       @skills.skills.each { |s| lines << "- [#{s.name}](#{@site_url}skills/#{s.name}.md): #{s.description}" }
       lines << "" << "## Guides" << ""
-      lines.concat(entries(["Getting started", "Guides", "Advanced"]))
+      lines.concat(entries(["Getting started", "Concepts", "Guides", "Advanced"]))
       lines << "" << "## API reference" << ""
       lines.concat(entries(%w[Core Resources]))
       lines << "" << "## Project" << ""

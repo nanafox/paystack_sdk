@@ -1,0 +1,99 @@
+/* Maps the design tokens onto VitePress's variables. */
+:root {
+  --vp-c-brand-1: var(--ps-green-700);
+  --vp-c-brand-2: var(--ps-green-600);
+  --vp-c-brand-3: var(--ps-green-600);
+  --vp-c-brand-soft: rgba(15, 169, 104, 0.14);
+
+  --vp-c-bg-alt: var(--ps-navy-50);
+  --vp-c-bg-soft: var(--ps-navy-50);
+  --vp-c-divider: #dde5ef;
+  --vp-c-text-1: var(--ps-navy-900);
+
+  --vp-button-brand-bg: var(--ps-green-500);
+  --vp-button-brand-text: var(--ps-navy-950);
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-hover-bg: var(--ps-green-400);
+  --vp-button-brand-hover-text: var(--ps-navy-950);
+  --vp-button-brand-active-bg: var(--ps-green-600);
+  --vp-button-brand-active-text: var(--ps-navy-950);
+
+  --vp-font-family-base: var(--ps-font-sans);
+  --vp-font-family-mono: var(--ps-font-mono);
+  --vp-code-block-bg: #f1f5fa;
+  --vp-code-color: var(--ps-navy-800);
+}
+
+.dark {
+  --vp-c-brand-1: var(--ps-green-400);
+  --vp-c-brand-2: var(--ps-green-500);
+  --vp-c-brand-3: var(--ps-green-600);
+  --vp-c-brand-soft: rgba(61, 220, 151, 0.16);
+
+  --vp-c-bg: #081426;
+  --vp-c-bg-alt: #0b1b33;
+  --vp-c-bg-elv: #0f2442;
+  --vp-c-bg-soft: #0d2038;
+  --vp-c-divider: #17304f;
+  --vp-c-gutter: #050d1b;
+  --vp-c-text-1: #e8eef7;
+  --vp-c-text-2: #a9b8cc;
+
+  --vp-code-block-bg: #0a1a30;
+  --vp-code-color: var(--ps-green-300);
+}
+
+/* Titles and content */
+.vp-doc h1,
+.vp-doc h2 {
+  letter-spacing: -0.02em;
+}
+.vp-doc h2 {
+  border-top-color: var(--vp-c-divider);
+}
+.vp-doc a {
+  text-decoration-color: color-mix(in srgb, var(--vp-c-brand-1) 45%, transparent);
+  text-underline-offset: 3px;
+}
+.vp-doc table {
+  display: table;
+  width: 100%;
+}
+.vp-doc th {
+  background: var(--vp-c-bg-soft);
+}
+.vp-doc h3 > code {
+  font-size: 1.05em;
+}
+
+/* Callouts keep VitePress's markup; the tip is green, the warning amber */
+.vp-doc .custom-block.tip {
+  border-color: color-mix(in srgb, var(--ps-green-500) 40%, transparent);
+  background: color-mix(in srgb, var(--ps-green-500) 9%, transparent);
+}
+.vp-doc .custom-block.warning {
+  border-color: color-mix(in srgb, var(--ps-amber-500) 45%, transparent);
+  background: color-mix(in srgb, var(--ps-amber-500) 9%, transparent);
+}
+
+/* Navigation */
+.VPNavBar .title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.VPSidebarItem.level-0 > .item .text {
+  letter-spacing: 0.01em;
+}
+
+/* Version switcher and banner */
+.version-switcher {
+  margin-left: 12px;
+}
+.version-switcher select {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+  padding: 2px 6px;
+  font-size: 13px;
+}
