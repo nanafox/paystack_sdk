@@ -1,0 +1,15 @@
+{
+  "name": "paystack-sdk-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "content": "ruby scripts/build-content.rb",
+    "dev": "npm run content && vitepress dev content --config .vitepress/config.mts",
+    "build": "vitepress build content --config .vitepress/config.mts && cp -r content-public/. content/.vitepress/dist/",
+    "preview": "vitepress preview content --config .vitepress/config.mts"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.13"
+  }
+}

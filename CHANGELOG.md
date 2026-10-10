@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- A versioned documentation site at <https://nanafox.github.io/paystack_sdk/>: guides from the README, an API reference generated from the YARD comments, the AI skills, and the changelog. One build per release, `latest` and `next` aliases, a version switcher, every page as raw markdown, and `llms.txt` / `llms-full.txt`. The tooling lives in `docs/` and is not packaged in the gem (YARD is a development dependency only).
+
 ## [0.5.0] - 2026-10-10
 
 ### Upgrading from 0.4
