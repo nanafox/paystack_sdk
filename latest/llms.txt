@@ -1,0 +1,102 @@
+# Paystack Ruby SDK (paystack_sdk 0.5.0)
+
+> A Ruby client for the Paystack API. It mirrors Paystack's endpoints, takes keyword arguments, validates input before sending, and ships skills for AI coding agents. Amounts are integers in the currency's smallest unit; `success?` on a response means the call was accepted, not that a charge succeeded. Fetch the skill that matches your task first.
+
+## Skills (start here)
+
+- [Skills index](https://nanafox.github.io/paystack_sdk/latest/skills/index.md): every skill, and when to load it
+- [paystack-sdk-overview](https://nanafox.github.io/paystack_sdk/latest/skills/paystack-sdk-overview.md): Use when writing or reviewing Ruby code that calls Paystack through the paystack_sdk gem: creating a client, picking a resource and method, reading a Response, handling errors, or deciding how far to trust a result. Load this first; it covers the conventions every other paystack-sdk skill assumes.
+- [paystack-sdk-charge-statuses](https://nanafox.github.io/paystack_sdk/latest/skills/paystack-sdk-charge-statuses.md): Use when code starts a payment with the Charge API (card or mobile money) and must react to what comes back: a status such as send_pin, send_otp, send_phone, pay_offline, pending, failed or success, deciding what to show the payer, and which paystack_sdk call to make next. Also use when a charge call reports success? but the payment did not go through.
+- [paystack-sdk-mobile-money](https://nanafox.github.io/paystack_sdk/latest/skills/paystack-sdk-mobile-money.md): Use when charging a mobile money wallet in Ghana (MTN, Telecel, AT Money/AirtelTigo) with paystack_sdk, or any provider that uses charges.mobile_money: choosing the provider code and the phone number format, what the payer sees, how long the payer has, how to learn the result, and what test mode does not prove.
+- [paystack-sdk-money-safety](https://nanafox.github.io/paystack_sdk/latest/skills/paystack-sdk-money-safety.md): Use before writing, reviewing or merging any code that moves or records money with the paystack_sdk gem: starting or confirming a payment, granting value after a webhook or return URL, charging a saved card, handling a timeout on a write, storing card or authorization data, logging or reporting errors that touch a Paystack client, choosing keys per environment, or reconciling payments. A checklist of rules, each checked against the gem and the Paystack test API, ending in a pre-merge table.
+- [paystack-sdk-payments](https://nanafox.github.io/paystack_sdk/latest/skills/paystack-sdk-payments.md): Use when building or reviewing the hosted checkout flow with paystack_sdk: starting a payment with client.transactions.initiate, redirecting the payer to authorization_url, handling the callback_url return, confirming with transactions.verify and paid?, reading a verify status such as success, abandoned or failed, making confirmation safe when the callback and the webhook arrive together, deciding which transaction fields to store, or looking transactions up with fetch and list.
+- [paystack-sdk-refunds](https://nanafox.github.io/paystack_sdk/latest/skills/paystack-sdk-refunds.md): Use when code returns money to a customer for a Paystack payment with paystack_sdk (client.refunds): a full or partial refund, checking how much of a transaction is already refunded, reading a refund status (pending, processing, processed, failed, needs-attention), handling refund webhooks, recovering from a timeout on a refund request, or showing the payer what happened. Load it before writing any code that calls refunds.create.
+- [paystack-sdk-saved-card-renewals](https://nanafox.github.io/paystack_sdk/latest/skills/paystack-sdk-saved-card-renewals.md): Use when charging a returning customer saved card without checkout through paystack_sdk: renewals, dues or instalments your own app schedules, saving the reusable authorization from a first payment, calling transactions.charge_authorization or partial_debit, designing renewal references, handling a declined, rejected or timed-out renewal, dunning, or a lost authorization code. Not for Paystack Plans or Subscriptions.
+- [paystack-sdk-testing](https://nanafox.github.io/paystack_sdk/latest/skills/paystack-sdk-testing.md): Use when writing or running tests for an app that calls Paystack through the paystack_sdk gem: choosing keys for test, staging and CI, stubbing Paystack HTTP with WebMock (success, 400, 401, 429, 500 and timeout bodies), writing an opt-in test-API suite, using Paystacks published test cards and test mobile money number, testing a webhook endpoint, or deciding what test mode can never prove.
+- [paystack-sdk-webhooks](https://nanafox.github.io/paystack_sdk/latest/skills/paystack-sdk-webhooks.md): Use when building or reviewing the endpoint that receives Paystack webhooks (charge.success, refund.*, transfer.*, subscription.*, invoice.*, dispute.*) in a Rails or Rack app: verifying the x-paystack-signature header with PaystackSdk::Webhook, reading the raw request body, skipping CSRF, answering 200 fast and working in a background job, handling duplicate or out-of-order deliveries, and testing the endpoint with a signed request. Also use when checking whether Paystack delivered a webhook, or replaying one, with client.webhook_events.
+
+## Guides
+
+- [Introduction](https://nanafox.github.io/paystack_sdk/latest/md/guide/introduction.md): The paystack_sdk gem provides a simple and intuitive interface for interacting with Paystack's payment gateway API.
+- [Installation](https://nanafox.github.io/paystack_sdk/latest/md/guide/installation.md): Add this line to your application's Gemfile:
+- [Quick Start](https://nanafox.github.io/paystack_sdk/latest/md/guide/quick-start.md): require 'paystack_sdk'
+- [Client Initialization](https://nanafox.github.io/paystack_sdk/latest/md/guide/client-initialization.md): paystack = PaystackSdk::Client.new(secret_key: "sk_test_xxx")
+- [Test and Live Keys](https://nanafox.github.io/paystack_sdk/latest/md/guide/test-and-live-keys.md): A live key (sk_live_...) moves real money.
+- [Transactions](https://nanafox.github.io/paystack_sdk/latest/md/guide/transactions.md): The SDK provides comprehensive support for Paystack's Transaction API.
+- [Charges](https://nanafox.github.io/paystack_sdk/latest/md/guide/charges.md): The Charge API lets you pick the payment channel yourself instead of sending the customer to Checkout: a saved card authorization, a bank account, USSD, mobile 
+- [Customers](https://nanafox.github.io/paystack_sdk/latest/md/guide/customers.md): The SDK provides comprehensive support for Paystack's Customer API, allowing you to manage customer records, their identity validation, risk actions and authori
+- [Banks](https://nanafox.github.io/paystack_sdk/latest/md/guide/banks.md): Everything takes keyword arguments.
+- [Miscellaneous](https://nanafox.github.io/paystack_sdk/latest/md/guide/miscellaneous.md): response = paystack.miscellaneous.resolve_card_bin(bin: "539983")
+- [Transfer Recipients](https://nanafox.github.io/paystack_sdk/latest/md/guide/transfer-recipients.md): Every method takes keyword arguments.
+- [Transfers](https://nanafox.github.io/paystack_sdk/latest/md/guide/transfers.md): Transfers send money from your Paystack balance to a transfer recipient (RCP_...).
+- [Refunds](https://nanafox.github.io/paystack_sdk/latest/md/guide/refunds.md): Refunds return money from a successful transaction to the customer.
+- [Settlements](https://nanafox.github.io/paystack_sdk/latest/md/guide/settlements.md): Settlements are the payouts Paystack makes to your bank account.
+- [Splits](https://nanafox.github.io/paystack_sdk/latest/md/guide/splits.md): A transaction split shares the settlement for a payment between your payout account and one or more subaccounts (ACCT_...).
+- [Disputes](https://nanafox.github.io/paystack_sdk/latest/md/guide/disputes.md): Disputes (chargebacks) are filed against your transactions by customers or their banks.
+- [Subaccounts](https://nanafox.github.io/paystack_sdk/latest/md/guide/subaccounts.md): A subaccount is a settlement account that receives its share of the payments made to it, such as one per branch or partner.
+- [Orders](https://nanafox.github.io/paystack_sdk/latest/md/guide/orders.md): Orders record a customer's purchase of your products.
+- [Balances](https://nanafox.github.io/paystack_sdk/latest/md/guide/balances.md): Read-only.
+- [Plans](https://nanafox.github.io/paystack_sdk/latest/md/guide/plans.md): A plan is a recurring charge definition: an amount, an interval and a currency.
+- [Subscriptions](https://nanafox.github.io/paystack_sdk/latest/md/guide/subscriptions.md): A subscription charges a customer's saved card on a plan's schedule.
+- [Dedicated Virtual Accounts](https://nanafox.github.io/paystack_sdk/latest/md/guide/dedicated-virtual-accounts.md): A dedicated virtual account is a bank account number Paystack issues to one of your customers, so they can pay you by bank transfer.
+- [Payment Requests](https://nanafox.github.io/paystack_sdk/latest/md/guide/payment-requests.md): A payment request is an invoice Paystack sends to a customer, who pays it online.
+- [Pages](https://nanafox.github.io/paystack_sdk/latest/md/guide/pages.md): A payment page is a public pay link at https://paystack.com/pay/<slug>, useful for donations or one-off payments.
+- [Products](https://nanafox.github.io/paystack_sdk/latest/md/guide/products.md): A product is something you sell through Paystack (a good, with stock if you track it).
+- [Storefronts](https://nanafox.github.io/paystack_sdk/latest/md/guide/storefronts.md): A storefront is a Paystack-hosted shop (https://paystack.shop/<slug>) that sells products you created with the Products API.
+- [Bulk Charges](https://nanafox.github.io/paystack_sdk/latest/md/guide/bulk-charges.md): A bulk charge charges many saved cards (reusable authorizations) in one batch, which Paystack queues and processes in the background.
+- [Apple Pay](https://nanafox.github.io/paystack_sdk/latest/md/guide/apple-pay.md): Apple Pay on Paystack needs each domain (or subdomain) that shows the Apple Pay button to be registered on your integration.
+- [Integration](https://nanafox.github.io/paystack_sdk/latest/md/guide/integration.md): Settings of your Paystack integration (the account).
+- [Virtual Terminals](https://nanafox.github.io/paystack_sdk/latest/md/guide/virtual-terminals.md): A virtual terminal lets you accept in-person payments without a POS device: payments made to it notify its destinations, which are WhatsApp numbers.
+- [Direct Debit](https://nanafox.github.io/paystack_sdk/latest/md/guide/direct-debit.md): client.direct_debits works across your whole integration: every customer's Direct Debit mandates at once, and activation charges for several customers in one call.
+- [Terminals](https://nanafox.github.io/paystack_sdk/latest/md/guide/terminals.md): A Paystack Terminal is a physical point-of-sale device linked to your integration.
+- [Webhook Events](https://nanafox.github.io/paystack_sdk/latest/md/guide/webhook-events.md): The Webhook Events API is the log of every webhook Paystack tried to send to your integration's webhook URL: whether it was delivered, what Paystack sent, and what your endpoint answered.
+- [Response Handling](https://nanafox.github.io/paystack_sdk/latest/md/guide/response-handling.md): All API requests return a PaystackSdk::Response object that provides easy access to the response data.
+- [Timeouts and Retries](https://nanafox.github.io/paystack_sdk/latest/md/guide/timeouts-and-retries.md): Connections built by the SDK time out and retry transient failures by default:
+- [Webhooks](https://nanafox.github.io/paystack_sdk/latest/md/guide/webhooks.md): Paystack tells you about changes (a charge succeeded, a refund was processed, a transfer failed) by POSTing events to your webhook URL.
+- [Environment Variables](https://nanafox.github.io/paystack_sdk/latest/md/guide/environment-variables.md): You can use environment variables to configure the SDK:
+- [Direct Resource Instantiation](https://nanafox.github.io/paystack_sdk/latest/md/guide/direct-resource-instantiation.md): For more advanced usage, you can instantiate resource classes directly:
+
+## API reference
+
+- [Client](https://nanafox.github.io/paystack_sdk/latest/md/reference/client.md): The Client class serves as the main entry point for interacting with the Paystack API.
+- [Response](https://nanafox.github.io/paystack_sdk/latest/md/reference/response.md): The Response class provides a wrapper around Paystack API responses.
+- [Webhook](https://nanafox.github.io/paystack_sdk/latest/md/reference/webhook.md): Helpers for receiving Paystack webhooks, independent of any web framework.
+- [Errors](https://nanafox.github.io/paystack_sdk/latest/md/reference/errors.md): Every error the SDK raises inherits from PaystackSdk::Error.
+- [Apple Pay](https://nanafox.github.io/paystack_sdk/latest/md/reference/apple-pay.md): Apple Pay operations.
+- [Balances](https://nanafox.github.io/paystack_sdk/latest/md/reference/balances.md): Balance operations.
+- [Banks](https://nanafox.github.io/paystack_sdk/latest/md/reference/banks.md): Bank operations.
+- [Bulk Charges](https://nanafox.github.io/paystack_sdk/latest/md/reference/bulk-charges.md): Bulk Charge operations.
+- [Charges](https://nanafox.github.io/paystack_sdk/latest/md/reference/charges.md): Charge operations.
+- [Customers](https://nanafox.github.io/paystack_sdk/latest/md/reference/customers.md): Customer operations.
+- [Dedicated Virtual Accounts](https://nanafox.github.io/paystack_sdk/latest/md/reference/dedicated-virtual-accounts.md): Dedicated Virtual Account operations.
+- [Direct Debits](https://nanafox.github.io/paystack_sdk/latest/md/reference/direct-debits.md): Direct Debit operations.
+- [Disputes](https://nanafox.github.io/paystack_sdk/latest/md/reference/disputes.md): Dispute operations.
+- [Integrations](https://nanafox.github.io/paystack_sdk/latest/md/reference/integrations.md): Integration operations.
+- [Miscellaneous](https://nanafox.github.io/paystack_sdk/latest/md/reference/miscellaneous.md): Miscellaneous operations.
+- [Orders](https://nanafox.github.io/paystack_sdk/latest/md/reference/orders.md): Order operations.
+- [Pages](https://nanafox.github.io/paystack_sdk/latest/md/reference/pages.md): Page operations.
+- [Payment Requests](https://nanafox.github.io/paystack_sdk/latest/md/reference/payment-requests.md): Payment Request operations.
+- [Plans](https://nanafox.github.io/paystack_sdk/latest/md/reference/plans.md): Plan operations.
+- [Products](https://nanafox.github.io/paystack_sdk/latest/md/reference/products.md): Product operations.
+- [Refunds](https://nanafox.github.io/paystack_sdk/latest/md/reference/refunds.md): Refund operations.
+- [Settlements](https://nanafox.github.io/paystack_sdk/latest/md/reference/settlements.md): Settlement operations.
+- [Splits](https://nanafox.github.io/paystack_sdk/latest/md/reference/splits.md): Split operations.
+- [Storefronts](https://nanafox.github.io/paystack_sdk/latest/md/reference/storefronts.md): Storefront operations.
+- [Subaccounts](https://nanafox.github.io/paystack_sdk/latest/md/reference/subaccounts.md): Subaccount operations.
+- [Subscriptions](https://nanafox.github.io/paystack_sdk/latest/md/reference/subscriptions.md): Subscription operations.
+- [Terminals](https://nanafox.github.io/paystack_sdk/latest/md/reference/terminals.md): Terminal operations.
+- [Transactions](https://nanafox.github.io/paystack_sdk/latest/md/reference/transactions.md): Transaction operations.
+- [Transfer Recipients](https://nanafox.github.io/paystack_sdk/latest/md/reference/transfer-recipients.md): Transfer Recipient operations.
+- [Transfers](https://nanafox.github.io/paystack_sdk/latest/md/reference/transfers.md): Transfer operations: send money from your balance to transfer recipients, and manage the OTP
+- [Virtual Terminals](https://nanafox.github.io/paystack_sdk/latest/md/reference/virtual-terminals.md): Virtual Terminal operations.
+- [Webhook Events](https://nanafox.github.io/paystack_sdk/latest/md/reference/webhook-events.md): Webhook Events API: the log of webhooks Paystack has sent to your integration's webhook URL, with their
+
+## Project
+
+- [Development](https://nanafox.github.io/paystack_sdk/latest/md/guide/development.md): After checking out the repo, run bin/setup to install dependencies.
+- [Contributing](https://nanafox.github.io/paystack_sdk/latest/md/guide/contributing.md): Bug reports and pull requests are welcome on GitHub at https://github.com/nanafox/paystack_sdk.
+- [Changelog](https://nanafox.github.io/paystack_sdk/latest/md/changelog.md): Two behaviours changed in small ways.
+
+## Everything in one file
+
+- [llms-full.txt](https://nanafox.github.io/paystack_sdk/latest/llms-full.txt): the skills, the guides and the API reference concatenated
