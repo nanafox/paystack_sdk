@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "content": "ruby scripts/build-content.rb",
-    "dev": "npm run content && vitepress dev content --config .vitepress/config.mts",
-    "build": "vitepress build content --config .vitepress/config.mts && cp -r content-public/. content/.vitepress/dist/",
-    "preview": "vitepress preview content --config .vitepress/config.mts"
+    "dev": "npm run content && vitepress dev",
+    "build": "vitepress build && cp -r content-public/. .vitepress/dist/",
+    "preview": "vitepress preview"
   },
   "devDependencies": {
     "vitepress": "^1.6.4",
