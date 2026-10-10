@@ -9,6 +9,7 @@ const site = JSON.parse(readFileSync(resolve(here, "../content/site.json"), "utf
 const repo = "https://github.com/nanafox/paystack_sdk"
 
 export default defineConfig({
+  srcDir: "content",
   title: "paystack_sdk",
   description: "A Ruby client for the Paystack API",
   base: site.base,

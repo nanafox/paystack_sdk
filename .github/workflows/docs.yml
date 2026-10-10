@@ -99,7 +99,7 @@ jobs:
         run: |
           set -euo pipefail
           version="${{ steps.target.outputs.version }}"
-          dist="$PWD/tools/docs/content/.vitepress/dist"
+          dist="$PWD/tools/docs/.vitepress/dist"
           if git ls-remote --exit-code --heads "https://github.com/${{ github.repository }}" gh-pages >/dev/null; then
             git clone --depth 1 --branch gh-pages "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" site
           else
