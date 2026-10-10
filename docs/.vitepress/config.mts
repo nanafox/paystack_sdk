@@ -14,6 +14,10 @@ const rawFiles = {
     server.middlewares.use((req: any, res: any, next: () => void) => {
       const path = decodeURIComponent((req.url ?? "").split("?")[0])
       if (!path.startsWith(site.base)) return next()
+      // Vite requests the page modules as /skills/index.md (dest "script") and must get those from VitePress;
+      // only a direct visit or a plain fetch (curl, an agent) should get the raw file.
+      const dest = req.headers["sec-fetch-dest"]
+      if (dest && dest !== "document") return next()
       const file = resolve(here, "../content-public", path.slice(site.base.length))
       if (!file.startsWith(resolve(here, "../content-public")) || !existsSync(file) || !statSync(file).isFile()) return next()
       res.setHeader("Content-Type", file.endsWith(".md") || file.endsWith(".txt") ? "text/plain; charset=utf-8" : "application/octet-stream")
@@ -56,7 +60,7 @@ export default defineConfig({
     socialLinks: [{ icon: "github", link: repo }],
     editLink: { pattern: `${repo}/edit/main/README.md`, text: "Edit the README on GitHub" },
     footer: {
-      message: `paystack_sdk ${site.version} · MIT License · <a href="https://rubygems.org/gems/paystack_sdk" target="_blank" rel="noreferrer">rubygems.org/gems/paystack_sdk</a>`,
+      message: `MIT License · <a href="https://rubygems.org/gems/paystack_sdk" target="_blank" rel="noreferrer">rubygems.org/gems/paystack_sdk</a>`,
       copyright: `© 2026–present Maxwell Nana Forson · every page is also available as raw markdown: see <a href="${site.base}llms.txt">llms.txt</a>`,
     },
   },
